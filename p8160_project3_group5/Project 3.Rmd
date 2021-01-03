@@ -1,0 +1,64 @@
+---
+title: "Project 3"
+author: "Yuanzhi Yu, Zongchao Liu, Sitong cui, Mengyu Zhang"
+date: "2020/4/20"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(caret)
+library(matrixcalc)
+library(pracma)
+```
+
+#### Import and clean data
+```{r}
+# import data
+covid = read_csv("covid19-1.csv") 
+names(covid) = c("id", "province" ,"region", "lat", "long", "date", "confirm", "fatality") 
+
+# clean data
+clean_covid = covid %>% 
+  filter(confirm > 0) %>% 
+  select(-lat, -long) %>% 
+  group_by(region, date) %>% 
+  summarise(case = sum(confirm)) 
+
+# loop to clean data
+df = split(clean_covid, clean_covid$region)
+i=1
+
+for(i  in 1:length(df)){
+  h=NULL
+  d=1
+for(d in 1:nrow(df[[i]])){
+  h[d] = as.numeric(as.Date(strptime( "1/1/20", "%m/%d/%y")) - as.Date(strptime(df[[i]][d,2], "%m/%d/%y"))) 
+  d=d+1
+}
+  
+initial = (df[[i]][which(h == max(h)),2])
+new_df = df[[i]] %>% 
+  mutate(new_date = h) 
+
+df[[i]] = new_df[order(new_df$new_date, decreasing = T), ]
+df[[i]] = df[[i]] %>% 
+  mutate(
+  day = as.numeric(as.Date(strptime(date, "%m/%d/%y")) - as.Date(strptime(initial, "%m/%d/%y")))) 
+i=i+1
+}
+
+covid_test = NULL
+for( c in 1:length(df))
+covid_test = rbind(covid_test,df[[c]]) # new data
+
+dim(covid_test)
+```
+
+#### China test
+```{r}
+covid_china = covid_test %>% 
+  filter(region == "China")
+ggplot(covid_china, aes(x = day, y = case)) + geom_smooth() + theme_bw()
+```
+

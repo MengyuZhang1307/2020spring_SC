@@ -1,0 +1,750 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Project 4: Bayesian modeling of hurrican trajectories},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Project 4: Bayesian modeling of hurrican trajectories}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(tidyverse)}
+\KeywordTok{library}\NormalTok{(lubridate)}
+\KeywordTok{library}\NormalTok{(truncnorm)}
+\KeywordTok{library}\NormalTok{(mvtnorm)}
+\KeywordTok{library}\NormalTok{(matrixcalc)}
+\KeywordTok{library}\NormalTok{(glmnet)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{introduction}{%
+\subsection{Introduction}\label{introduction}}
+
+The 1989 Atlantic hurricane season officially began on June 1, 1989, and
+lasted until November 30, 1989. However storms can form outside these
+dates. For example, Tropical Storm Karen lasted until December 4. This
+season had average activity with 15 depressions, 3 became a tropical
+storm, 5 became a hurricane, and 2 became a major hurricane. This was a
+damaging season because this season featured the powerful Hurricane
+Hugo. Overall, the storms of the season collectively caused 136
+fatalities and at least \$10.2 billion in damage. Therefore, efforts to
+obtain deeper understanding of their physical mechanisms such as Wind.kt
+(Maximum wind speed in Knot at each check point) for the development and
+tracking is very important for us.
+
+\hypertarget{objective}{%
+\subsection{Objective}\label{objective}}
+
+Randomly select 80\% hurricanes and design a MCMC algorithm to estimate
+the posterior distributions of the model parameters. Estimate the model
+parameters using posteri means and construct their 95\% credibility
+intervals. Apply the developed model to track the remaining 20\%
+hurricanes, and evaluate how well your model could predict and track
+these hurricanes.
+
+\hypertarget{data}{%
+\subsection{Data}\label{data}}
+
+hurrican356.csv collected the track data of 356 hurricanes in the North
+Atlantic area since 1989. For all the storms, their location (longitude
+\& latitude) and maximum wind speed were recorded every 6 hours. The
+data includes the following variables
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{ID}: ID of the hurricans
+\item
+  \textbf{Season}: In which \textbf{year} the hurricane occurred
+\item
+  \textbf{Month}: In which \textbf{month} the hurricane occurred
+\item
+  \textbf{Nature}: Nature of the hurricane
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  ET: Extra Tropical
+\item
+  DS: Disturbance
+\item
+  NR: Not Rated
+\item
+  SS: Sub Tropical
+\item
+  TS: Tropical Storm
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  \textbf{time}: dates and time of the record\\
+\item
+  \textbf{Latitude} and \textbf{Longitude}: The location of a hurricane
+  check point
+\item
+  \textbf{Wind.kt} Maximum wind speed (in Knot) at each check point
+\end{enumerate}
+
+To make the model more interpretable, we delete the storms with the
+``Nature'' being ``Not Rated'', and then randomly split the data into
+training data and test data.
+
+\hypertarget{method}{%
+\subsection{Method}\label{method}}
+
+Let \(t\) be time (in hours) since a hurricane began, and For each
+hurrican \(i\), we denote
+\(\{ Y_{i,1}(t), Y_{i,2}(t), Y_{i,3}(t)\},j=1,2,3\) be the latitude,
+longitude, and wind speed at time \(t\). The following Bayesian model
+was suggested:
+
+\[Y_{i}(t+6) =  \mu_{i}(t) +\rho Y_{i}(t) + \epsilon_{i}(t)\]
+
+And then we have:
+
+\[\mu_{i}(t) =  \beta_{0}+x_{i,1}(t)\beta_{1} +
+x_{i,2} \beta_{2} + ]
+x_{i,3}\beta_{3} +
+\sum_{k=1}^3\beta_{3+k}\Delta_{i,k}(t-6)\]
+
+\[\Delta_{i,k}(t-6) = Y_{i,k}(t) -Y_{i,k}(t-6),k=1,2,3\] For
+\(\pi(\boldsymbol{\beta})\) \textasciitilde{}
+\(MVN(\mathbf 0,\ diag(1, p))\), \(\pi(\rho)\) follows a truncated
+normal \(N_{[0,1]}(0.5, 1/5)\) \(\pi((\sigma^2)^{-1})\) follows a
+inverse-gamma \((0.001, 0.001)\)
+
+What we can conclude from these information:
+
+Yi is a linear combination of \(\mu_i\) and \(\rho Y_{i}(t)\) and
+\(\epsilon_{i}(t)\). While \(\mu_i\) and \(\rho Y_{i}(t)\) is a
+constant. So \(Y_{i}(t+6)\) follow normal distribution with
+\(\mu_{new}(t)\) and variance \(\sigma^2\):
+
+\[Y_i(t+6)\sim Normal(\mu_{new}(t),\sigma^2)\]
+
+\[\mu_{new}(t)=\mu_{i}(t)+\rho Y_{i}(t) \] To exclude the time series
+influence on \(Y_i\) we choose to use
+\[\epsilon_i=Y_i(t+6)-\mu_{new}\sim Normal(0,\sigma^2)\]
+
+We set i is the ith hurricane, n is the total number of hurricane. The k
+denote the kth speed among this hurricane, m is the total measured
+speeds among this hurricane.
+
+The posteria distribution
+\[f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 )=\frac{1}{\sqrt{2\pi}\sigma}exp(-\frac{(Y_i(t+6)-\mu_{new}-0)^2}{2\sigma^2})\]
+Poesterian distribution:
+\[\pi(\boldsymbol\beta,\rho,\sigma^2|\epsilon_i)\propto \prod_{i=1}^{n}\prod_{k=1}^{m}f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 )*\pi(\boldsymbol{\beta})*\pi(\rho)*\pi((\sigma^2)^{-1})\]
+
+Take the log form:
+\[\pi'(\boldsymbol\beta,\rho,\sigma^2|\epsilon_i)\propto \sum_{i=1}^{n}\sum_{k=1}^{m}log(f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 ))+log(\pi(\boldsymbol\beta))+log(\pi(\rho))+log(\pi((\sigma^2)^{-1}))\]
+
+To find the poeteria distribution, we use the random walk in
+Metropolis-Hasting algorithm: The probability of accepting :
+\[\alpha(\lambda|\boldsymbol\theta)=min(1,\frac{\pi(\boldsymbol\lambda)q(\boldsymbol\theta|\boldsymbol\lambda)}{\pi(\boldsymbol\theta)q(\boldsymbol\lambda\boldsymbol\theta)})\]
+In this situation, we have: \[q(\theta|\lambda)=q(\lambda|\theta)\]
+
+So,
+\[\alpha(\lambda|\boldsymbol\theta)=min(1,\frac{\pi(\boldsymbol\lambda)}{\pi(\boldsymbol\theta)})=min(1,\pi'(\boldsymbol\lambda)-\pi'(\boldsymbol\theta))\]
+
+Finally ,we can compare the \(\alpha(\lambda|\boldsymbol\theta)\) with
+the random drawed uniform(0,1) number,if
+\(\alpha(\lambda|\boldsymbol\theta)\) is larger, accept the \(\lambda\),
+otherwise still accept \$ \theta\$.
+
+\hypertarget{result}{%
+\subsection{Result}\label{result}}
+
+The chain plots of parameters are shown below. Since the accept rate
+decrease after 1000 iterations, to make transition more efficient, the
+step size for random walk during first 1000 iterations is set to be
+different from the second half iterations. Accept rate is
+\(433/2000=0.2165\).
+
+Almost every parameters converge after 1500 iterations, so we average
+last 500 iterations to get estimates of parameters. The final parameters
+estimate are shown below.
+
+For prediction, we first paste the first two abservations from real data
+and predict the following time points by using the model with estimated
+parameters. To evaluate the model's performence of prediction, for each
+storms in test dataset, we calculate the mse for latitudes, longitude
+and maximum wind speed respectively. The distribution of mse among 71
+storms is shown as the following plots.
+
+\hypertarget{appendix}{%
+\subsection{Appendix}\label{appendix}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# data cleaning}
+\NormalTok{data =}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{"./hurrican356.csv"}\NormalTok{)}
+\NormalTok{shift <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x, }\DataTypeTok{n=}\DecValTok{1}\NormalTok{)\{}
+  \KeywordTok{c}\NormalTok{(x[}\OperatorTok{-}\NormalTok{(}\KeywordTok{seq}\NormalTok{(n))], }\KeywordTok{rep}\NormalTok{(}\OtherTok{NA}\NormalTok{, n))}
+\NormalTok{\}}
+\NormalTok{data1 =}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{"hurrican356.csv"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\NormalTok{janitor}\OperatorTok{::}\KeywordTok{clean_names}\NormalTok{() }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(nature }\OperatorTok{!=}\StringTok{ "NR"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{year =}\NormalTok{ season,}
+         \DataTypeTok{date_hour =}\NormalTok{ time) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{separate}\NormalTok{(date_hour, }\DataTypeTok{into =} \KeywordTok{c}\NormalTok{(}\StringTok{"date"}\NormalTok{, }\StringTok{"hour"}\NormalTok{), }\DataTypeTok{sep =} \StringTok{" "}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(hour }\OperatorTok{==}\StringTok{ "00:00:00)"} \OperatorTok{|}\StringTok{ }\NormalTok{hour }\OperatorTok{==}\StringTok{ "06:00:00)"} \OperatorTok{|}\StringTok{ }\NormalTok{hour }\OperatorTok{==}\StringTok{ "12:00:00)"} \OperatorTok{|}\StringTok{ }\NormalTok{hour }\OperatorTok{==}\StringTok{ "18:00:00)"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{hour =} \KeywordTok{str_replace}\NormalTok{(hour, }\StringTok{":00:00}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{)"}\NormalTok{, }\StringTok{""}\NormalTok{),}
+         \DataTypeTok{hour =} \KeywordTok{as.numeric}\NormalTok{(hour),}
+         \DataTypeTok{date =} \KeywordTok{str_replace}\NormalTok{(date, }\StringTok{"}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{("}\NormalTok{, }\StringTok{""}\NormalTok{),}
+         \DataTypeTok{date =} \KeywordTok{yday}\NormalTok{(date),}
+         \DataTypeTok{nature =} \KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{as.factor}\NormalTok{(nature))) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(id) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{delta1 =} \KeywordTok{c}\NormalTok{(}\OtherTok{NA}\NormalTok{, }\KeywordTok{diff}\NormalTok{(latitude)),}
+         \DataTypeTok{delta2 =} \KeywordTok{c}\NormalTok{(}\OtherTok{NA}\NormalTok{, }\KeywordTok{diff}\NormalTok{(longitude)),}
+         \DataTypeTok{delta3 =} \KeywordTok{c}\NormalTok{(}\OtherTok{NA}\NormalTok{, }\KeywordTok{diff}\NormalTok{(wind_kt)),}
+         \DataTypeTok{latitude_d =} \KeywordTok{shift}\NormalTok{(latitude),}
+         \DataTypeTok{longitude_d =} \KeywordTok{shift}\NormalTok{(longitude),}
+         \DataTypeTok{windkt_d =} \KeywordTok{shift}\NormalTok{(wind_kt)) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{ungroup}\NormalTok{() }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{na.omit}\NormalTok{() }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{select}\NormalTok{(id, latitude, longitude, wind_kt, latitude_d, longitude_d, windkt_d, date, year, nature, delta1, delta2, delta3)}
+
+\CommentTok{#head(data1)}
+\CommentTok{#summary(data1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#split the data into train and test}
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{123}\NormalTok{)}
+\NormalTok{id =}\StringTok{ }\KeywordTok{unique}\NormalTok{(data1}\OperatorTok{$}\NormalTok{id)}
+\NormalTok{num_id =}\StringTok{ }\KeywordTok{length}\NormalTok{(id)}
+\NormalTok{train_id =}\StringTok{ }\KeywordTok{sample}\NormalTok{(id, }\FloatTok{0.8}\OperatorTok{*}\NormalTok{num_id)}
+
+\NormalTok{train_data =}\StringTok{ }\NormalTok{data1[}\KeywordTok{which}\NormalTok{(data1}\OperatorTok{$}\NormalTok{id }\OperatorTok{%in%}\StringTok{ }\NormalTok{train_id),] }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{id)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Starting points}
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{111}\NormalTok{)}
+\NormalTok{rho =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.8}\NormalTok{, }\DecValTok{3}\NormalTok{)}
+\NormalTok{sigma =}\StringTok{ }\NormalTok{bayesm}\OperatorTok{::}\KeywordTok{rwishart}\NormalTok{(}\DecValTok{3}\NormalTok{,}\KeywordTok{diag}\NormalTok{(}\FloatTok{0.1}\NormalTok{,}\DecValTok{3}\NormalTok{))}\OperatorTok{$}\NormalTok{IW}
+\NormalTok{sigma =}\StringTok{ }\KeywordTok{c}\NormalTok{(sigma[}\DecValTok{1}\NormalTok{,], sigma[}\DecValTok{2}\NormalTok{,}\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{3}\NormalTok{)], sigma[}\DecValTok{3}\NormalTok{,}\DecValTok{3}\NormalTok{])}
+\NormalTok{beta =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.005}\NormalTok{,}\DecValTok{21}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Density function.}
+\CommentTok{# for each yi}
+\NormalTok{logdy =}\StringTok{ }\ControlFlowTok{function}\NormalTok{(obs, beta, rho, sigma)\{}
+\NormalTok{  x =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,obs[}\DecValTok{7}\OperatorTok{:}\DecValTok{12}\NormalTok{])}
+\NormalTok{  y =}\StringTok{ }\NormalTok{obs[}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{]}
+\NormalTok{  mu =}\StringTok{ }\NormalTok{beta }\OperatorTok{%*%}\StringTok{ }\NormalTok{x }\OperatorTok{+}\StringTok{ }\NormalTok{rho}\OperatorTok{*}\NormalTok{obs[}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{]}
+\NormalTok{  dy =}\StringTok{ }\KeywordTok{dmvnorm}\NormalTok{(obs[}\DecValTok{4}\OperatorTok{:}\DecValTok{6}\NormalTok{], }\DataTypeTok{mean =}\NormalTok{ mu, }\DataTypeTok{sigma =}\NormalTok{ sigma)}
+  \KeywordTok{return}\NormalTok{(}\KeywordTok{log}\NormalTok{(dy))}
+\NormalTok{\}}
+
+\CommentTok{#traintest = train_data[c(1:100),]}
+\CommentTok{#betatest = rep(0.008,21)}
+\CommentTok{#apply(traintest, 1, logdy, beta.=betatest)}
+
+\NormalTok{logdensity =}\StringTok{ }\ControlFlowTok{function}\NormalTok{(}\DataTypeTok{data=}\NormalTok{train_data, }\DataTypeTok{beta.=}\NormalTok{beta, }\DataTypeTok{rho.=}\NormalTok{rho, }\DataTypeTok{sigma.=}\NormalTok{sigma)\{}
+\NormalTok{  beta_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(beta.,}\DecValTok{3}\NormalTok{)}
+\NormalTok{  sigma_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\KeywordTok{c}\NormalTok{(sigma.[}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{)], sigma.[}\DecValTok{2}\NormalTok{], sigma.[}\KeywordTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{5}\NormalTok{)], sigma.[}\KeywordTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{,}\DecValTok{5}\NormalTok{)], sigma.[}\DecValTok{6}\NormalTok{]), }\DecValTok{3}\NormalTok{)}
+\NormalTok{  logdy =}\StringTok{ }\KeywordTok{apply}\NormalTok{(data, }\DecValTok{1}\NormalTok{, logdy, }\DataTypeTok{beta=}\NormalTok{beta_m, }\DataTypeTok{rho=}\NormalTok{rho., }\DataTypeTok{sigma=}\NormalTok{sigma_m)}
+\NormalTok{  logdens =}\StringTok{ }\KeywordTok{sum}\NormalTok{(logdy) }\OperatorTok{+}\StringTok{ }\KeywordTok{log}\NormalTok{(}\KeywordTok{dmvnorm}\NormalTok{(beta., }\KeywordTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{21}\NormalTok{), }\KeywordTok{diag}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{21}\NormalTok{))) }\OperatorTok{+}\StringTok{ }\KeywordTok{log}\NormalTok{(}\KeywordTok{dtruncnorm}\NormalTok{(rho.[}\DecValTok{1}\NormalTok{], }\DataTypeTok{a=}\DecValTok{0}\NormalTok{, }\DataTypeTok{b=}\DecValTok{1}\NormalTok{, }\DataTypeTok{mean =} \FloatTok{0.5}\NormalTok{, }\DataTypeTok{sd =} \FloatTok{0.2}\NormalTok{)) }\OperatorTok{+}\StringTok{ }\KeywordTok{log}\NormalTok{(}\KeywordTok{dtruncnorm}\NormalTok{(rho.[}\DecValTok{2}\NormalTok{], }\DataTypeTok{a=}\DecValTok{0}\NormalTok{, }\DataTypeTok{b=}\DecValTok{1}\NormalTok{, }\DataTypeTok{mean =} \FloatTok{0.5}\NormalTok{, }\DataTypeTok{sd =} \FloatTok{0.2}\NormalTok{)) }\OperatorTok{+}\StringTok{ }\KeywordTok{log}\NormalTok{(}\KeywordTok{dtruncnorm}\NormalTok{(rho.[}\DecValTok{3}\NormalTok{], }\DataTypeTok{a=}\DecValTok{0}\NormalTok{, }\DataTypeTok{b=}\DecValTok{1}\NormalTok{, }\DataTypeTok{mean =} \FloatTok{0.5}\NormalTok{, }\DataTypeTok{sd =} \FloatTok{0.2}\NormalTok{)) }\OperatorTok{+}\StringTok{ }\KeywordTok{log}\NormalTok{(MCMCpack}\OperatorTok{::}\KeywordTok{diwish}\NormalTok{(sigma_m, }\DecValTok{3}\NormalTok{, }\KeywordTok{diag}\NormalTok{(}\FloatTok{0.1}\NormalTok{,}\DecValTok{3}\NormalTok{))) }
+  \KeywordTok{return}\NormalTok{(logdens)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# MH}
+\NormalTok{regularMHstep =}\StringTok{ }\ControlFlowTok{function}\NormalTok{(startpars, }\DataTypeTok{niter =} \DecValTok{1000}\NormalTok{, rhoa, betaa, sigmaa)\{}
+\NormalTok{  beta_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\OtherTok{NA}\NormalTok{, niter, }\DecValTok{21}\NormalTok{)}
+\NormalTok{  rho_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\OtherTok{NA}\NormalTok{, niter, }\DecValTok{3}\NormalTok{)}
+\NormalTok{  sigma_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\OtherTok{NA}\NormalTok{, niter, }\DecValTok{6}\NormalTok{)}
+\NormalTok{  beta_m[}\DecValTok{1}\NormalTok{,] =}\StringTok{ }\NormalTok{startpars}\OperatorTok{$}\NormalTok{beta}
+\NormalTok{  rho_m[}\DecValTok{1}\NormalTok{,] =}\StringTok{ }\NormalTok{startpars}\OperatorTok{$}\NormalTok{rho}
+\NormalTok{  sigma_m[}\DecValTok{1}\NormalTok{,] =}\StringTok{ }\NormalTok{startpars}\OperatorTok{$}\NormalTok{sigma}
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{2}\OperatorTok{:}\DecValTok{1000}\NormalTok{) \{   }\CommentTok{# correlated issue}
+    \KeywordTok{print}\NormalTok{(}\KeywordTok{str_c}\NormalTok{(}\StringTok{"#####################  "}\NormalTok{, i, }\StringTok{"/"}\NormalTok{,niter, }\StringTok{"  #####################"}\NormalTok{))}
+\NormalTok{    temp_beta =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{21}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{beta_a}
+\NormalTok{    temp_rho =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{rho_a}
+\NormalTok{    temp_sigma =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{6}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{sigma_a}
+\NormalTok{    temp_sigma_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\KeywordTok{c}\NormalTok{(temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{)], temp_sigma[}\DecValTok{2}\NormalTok{], temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{5}\NormalTok{)], temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{,}\DecValTok{5}\NormalTok{)], temp_sigma[}\DecValTok{6}\NormalTok{]), }\DecValTok{3}\NormalTok{)}
+    \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{sum}\NormalTok{(}\KeywordTok{ifelse}\NormalTok{(temp_rho}\OperatorTok{<}\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{))}\OperatorTok{==}\DecValTok{0} \OperatorTok{&}\StringTok{ }\KeywordTok{is.positive.definite}\NormalTok{(temp_sigma_m)) \{}
+      \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{log}\NormalTok{(}\KeywordTok{runif}\NormalTok{(}\DecValTok{1}\NormalTok{)) }\OperatorTok{<}\StringTok{ }\KeywordTok{logdensity}\NormalTok{(}\DataTypeTok{beta.=}\NormalTok{temp_beta, }\DataTypeTok{rho.=}\NormalTok{temp_rho, }\DataTypeTok{sigma.=}\NormalTok{temp_sigma) }\OperatorTok{-}\StringTok{ }\KeywordTok{logdensity}\NormalTok{(}\DataTypeTok{beta.=}\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,], }\DataTypeTok{rho.=}\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,], }\DataTypeTok{sigma.=}\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]))\{}
+\NormalTok{        beta_m[i,] =}\StringTok{ }\NormalTok{temp_beta}
+\NormalTok{        rho_m[i,] =}\StringTok{ }\NormalTok{temp_rho}
+\NormalTok{        sigma_m[i,] =}\StringTok{ }\NormalTok{temp_sigma}
+\NormalTok{        \}}
+      \ControlFlowTok{else}\NormalTok{\{}
+\NormalTok{        beta_m[i,] =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{        rho_m[i,] =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{        sigma_m[i,] =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      \}\}}
+    \ControlFlowTok{else}\NormalTok{\{}
+\NormalTok{      beta_m[i,] =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      rho_m[i,] =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      sigma_m[i,] =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      \}}
+\NormalTok{  \}}
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1001}\OperatorTok{:}\NormalTok{niter) \{   }\CommentTok{# correlated issue}
+    \KeywordTok{print}\NormalTok{(}\KeywordTok{str_c}\NormalTok{(}\StringTok{"#####################  "}\NormalTok{, i, }\StringTok{"/"}\NormalTok{,niter, }\StringTok{"  #####################"}\NormalTok{))}
+\NormalTok{    temp_beta =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{21}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{beta_a}\OperatorTok{/}\DecValTok{2}
+\NormalTok{    temp_rho =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{3}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{rho_a}\OperatorTok{/}\DecValTok{2}
+\NormalTok{    temp_sigma =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,] }\OperatorTok{+}\StringTok{ }\KeywordTok{runif}\NormalTok{(}\DecValTok{6}\NormalTok{,}\OperatorTok{-}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{sigma_a}\OperatorTok{/}\DecValTok{2}
+\NormalTok{    temp_sigma_m =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\KeywordTok{c}\NormalTok{(temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{)], temp_sigma[}\DecValTok{2}\NormalTok{], temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{5}\NormalTok{)], temp_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{,}\DecValTok{5}\NormalTok{)], temp_sigma[}\DecValTok{6}\NormalTok{]), }\DecValTok{3}\NormalTok{)}
+    \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{sum}\NormalTok{(}\KeywordTok{ifelse}\NormalTok{(temp_rho}\OperatorTok{<}\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{))}\OperatorTok{==}\DecValTok{0} \OperatorTok{&}\StringTok{ }\KeywordTok{is.positive.definite}\NormalTok{(temp_sigma_m)) \{}
+      \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{log}\NormalTok{(}\KeywordTok{runif}\NormalTok{(}\DecValTok{1}\NormalTok{)) }\OperatorTok{<}\StringTok{ }\KeywordTok{logdensity}\NormalTok{(}\DataTypeTok{beta.=}\NormalTok{temp_beta, }\DataTypeTok{rho.=}\NormalTok{temp_rho, }\DataTypeTok{sigma.=}\NormalTok{temp_sigma) }\OperatorTok{-}\StringTok{ }\KeywordTok{logdensity}\NormalTok{(}\DataTypeTok{beta.=}\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,], }\DataTypeTok{rho.=}\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,], }\DataTypeTok{sigma.=}\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]))\{}
+\NormalTok{        beta_m[i,] =}\StringTok{ }\NormalTok{temp_beta}
+\NormalTok{        rho_m[i,] =}\StringTok{ }\NormalTok{temp_rho}
+\NormalTok{        sigma_m[i,] =}\StringTok{ }\NormalTok{temp_sigma}
+\NormalTok{        \}}
+      \ControlFlowTok{else}\NormalTok{\{}
+\NormalTok{        beta_m[i,] =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{        rho_m[i,] =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{        sigma_m[i,] =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      \}\}}
+    \ControlFlowTok{else}\NormalTok{\{}
+\NormalTok{      beta_m[i,] =}\StringTok{ }\NormalTok{beta_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      rho_m[i,] =}\StringTok{ }\NormalTok{rho_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      sigma_m[i,] =}\StringTok{ }\NormalTok{sigma_m[i}\DecValTok{-1}\NormalTok{,]}
+\NormalTok{      \}}
+\NormalTok{  \}}
+  \KeywordTok{return}\NormalTok{(}\KeywordTok{list}\NormalTok{(}\DataTypeTok{est_beta =}\NormalTok{ beta_m, }\DataTypeTok{est_rho =}\NormalTok{ rho_m, }\DataTypeTok{est_sigma =}\NormalTok{ sigma_m))}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# starting points}
+\NormalTok{startpars =}\StringTok{ }\KeywordTok{list}\NormalTok{(}\DataTypeTok{rho =}\NormalTok{ rho, }\DataTypeTok{beta =}\NormalTok{ beta, }\DataTypeTok{sigma =}\NormalTok{ sigma)}
+\NormalTok{rho_a =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\FloatTok{0.005}\NormalTok{,}\FloatTok{0.005}\NormalTok{,}\FloatTok{0.01}\NormalTok{)}
+\NormalTok{sigma_a =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.5}\NormalTok{, }\DecValTok{6}\NormalTok{)}
+\NormalTok{beta_a =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\KeywordTok{rep}\NormalTok{(}\FloatTok{0.01}\NormalTok{, }\DecValTok{3}\NormalTok{), }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.0005}\NormalTok{, }\DecValTok{2}\NormalTok{), }\FloatTok{0.001}\NormalTok{, }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.0001}\NormalTok{, }\DecValTok{3}\NormalTok{), }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.005}\NormalTok{,}\DecValTok{6}\NormalTok{), }\FloatTok{0.01}\NormalTok{, }\KeywordTok{rep}\NormalTok{(}\FloatTok{0.005}\NormalTok{, }\DecValTok{5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{123}\NormalTok{)}
+\NormalTok{MHresults =}\StringTok{ }\KeywordTok{regularMHstep}\NormalTok{(startpars, }\DataTypeTok{niter =} \DecValTok{2000}\NormalTok{, }\DataTypeTok{rhoa =}\NormalTok{ rho_a, }\DataTypeTok{betaa =}\NormalTok{ beta_a, }\DataTypeTok{sigmaa =}\NormalTok{ sigma_a)}
+
+\CommentTok{#save(MHresults, file="result_2000_2.RData")}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# accept rate}
+\NormalTok{uni_beta =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\OtherTok{NA}\NormalTok{,}\DecValTok{21}\NormalTok{)}
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\DecValTok{21}\NormalTok{)\{}
+\NormalTok{  uni_beta[i] =}\StringTok{ }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_beta[}\DecValTok{1}\OperatorTok{:}\DecValTok{2000}\NormalTok{,i]))}
+\NormalTok{\}}
+\NormalTok{uni_beta}
+
+\NormalTok{uni_sigma =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\OtherTok{NA}\NormalTok{,}\DecValTok{6}\NormalTok{) }
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\DecValTok{6}\NormalTok{) \{}
+\NormalTok{  uni_sigma[i] =}\StringTok{ }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_sigma[}\DecValTok{1}\OperatorTok{:}\DecValTok{2000}\NormalTok{,i]))}
+\NormalTok{\}}
+\NormalTok{uni_sigma}
+
+\NormalTok{uni_rho =}\StringTok{ }\KeywordTok{rep}\NormalTok{(}\OtherTok{NA}\NormalTok{,}\DecValTok{3}\NormalTok{)}
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{) \{}
+\NormalTok{  uni_rho[i] =}\StringTok{ }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_rho[}\DecValTok{1}\OperatorTok{:}\DecValTok{2000}\NormalTok{,i]))}
+\NormalTok{\}}
+\NormalTok{uni_rho}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# print chain plots}
+\NormalTok{niter =}\StringTok{ }\DecValTok{2000}
+\NormalTok{beta_results =}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_beta) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{x =} \DecValTok{1}\OperatorTok{:}\NormalTok{niter) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ beta, }\DataTypeTok{value =}\NormalTok{ value, V1}\OperatorTok{:}\NormalTok{V21) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{beta =} \KeywordTok{str_replace}\NormalTok{(beta, }\StringTok{"V"}\NormalTok{, }\StringTok{""}\NormalTok{))}
+\NormalTok{beta_plot =}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(beta_results, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ x, }\DataTypeTok{y =}\NormalTok{ value, }\DataTypeTok{color =}\NormalTok{ beta)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_line}\NormalTok{()}
+\NormalTok{beta_plot}
+ 
+\NormalTok{rho_results =}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_rho) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{x =} \DecValTok{1}\OperatorTok{:}\NormalTok{niter) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ rho, }\DataTypeTok{value =}\NormalTok{ value, V1}\OperatorTok{:}\NormalTok{V3) }
+\NormalTok{rho_plot =}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(rho_results, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ x, }\DataTypeTok{y =}\NormalTok{ value, }\DataTypeTok{color =}\NormalTok{ rho)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_line}\NormalTok{()}
+\NormalTok{rho_plot}
+
+\NormalTok{sigma_results =}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(MHresults}\OperatorTok{$}\NormalTok{est_sigma) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{x =} \DecValTok{1}\OperatorTok{:}\NormalTok{niter) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ sigma, }\DataTypeTok{value =}\NormalTok{ value, V1}\OperatorTok{:}\NormalTok{V6) }
+\NormalTok{sigma_plot =}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(sigma_results, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ x, }\DataTypeTok{y =}\NormalTok{ value, }\DataTypeTok{color =}\NormalTok{ sigma)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_line}\NormalTok{()}
+\NormalTok{sigma_plot}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# estimates}
+\NormalTok{hat_sigmas =}\StringTok{ }\NormalTok{MHresults}\OperatorTok{$}\NormalTok{est_sigma}
+\NormalTok{hat_rhos =}\StringTok{ }\NormalTok{MHresults}\OperatorTok{$}\NormalTok{est_rho}
+\NormalTok{hat_betas =}\StringTok{ }\NormalTok{MHresults}\OperatorTok{$}\NormalTok{est_beta}
+
+\NormalTok{hatsigma =}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(hat_sigmas[}\DecValTok{1500}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(hat_sigmas),])}
+\NormalTok{hatrho =}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(hat_rhos[}\DecValTok{1500}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(hat_rhos),])}
+\NormalTok{hatbeta =}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(hat_betas[}\DecValTok{1500}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(hat_betas),])}
+
+\NormalTok{hat_sigma =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatsigma,}\DecValTok{2}\NormalTok{, mean)}
+\NormalTok{hat_rho =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatrho,}\DecValTok{2}\NormalTok{,mean)}
+\NormalTok{hat_beta =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatbeta,}\DecValTok{2}\NormalTok{,mean)}
+
+\NormalTok{hat_sigmam =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\KeywordTok{c}\NormalTok{(hat_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{3}\NormalTok{)], hat_sigma[}\DecValTok{2}\NormalTok{], hat_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{5}\NormalTok{)], hat_sigma[}\KeywordTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{,}\DecValTok{5}\NormalTok{)], hat_sigma[}\DecValTok{6}\NormalTok{]), }\DecValTok{3}\NormalTok{)}
+\NormalTok{hat_betam =}\StringTok{ }\KeywordTok{matrix}\NormalTok{(hat_beta,}\DecValTok{3}\NormalTok{)}
+
+\NormalTok{hat_sigmam }
+\NormalTok{hat_betam}
+\NormalTok{hat_rho}
+
+\NormalTok{ci_sigma =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatsigma, }\DecValTok{2}\NormalTok{, quantile, }\DataTypeTok{probs =} \KeywordTok{c}\NormalTok{(}\FloatTok{0.025}\NormalTok{, }\FloatTok{0.975}\NormalTok{))}
+\NormalTok{ci_rho =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatrho, }\DecValTok{2}\NormalTok{, quantile, }\DataTypeTok{probs =} \KeywordTok{c}\NormalTok{(}\FloatTok{0.025}\NormalTok{, }\FloatTok{0.975}\NormalTok{))}
+\NormalTok{ci_beta =}\StringTok{ }\KeywordTok{apply}\NormalTok{(hatbeta, }\DecValTok{2}\NormalTok{, quantile, }\DataTypeTok{probs =} \KeywordTok{c}\NormalTok{(}\FloatTok{0.025}\NormalTok{, }\FloatTok{0.975}\NormalTok{))}
+
+\KeywordTok{rbind}\NormalTok{(hat_sigma, ci_sigma)}
+
+\KeywordTok{rbind}\NormalTok{(hat_rho, ci_rho)}
+
+\KeywordTok{rbind}\NormalTok{(hat_beta, ci_beta)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# prediction}
+\NormalTok{test_id =}\StringTok{ }\KeywordTok{setdiff}\NormalTok{(id,train_id)}
+\NormalTok{test1 =}\StringTok{ }\NormalTok{data1[}\KeywordTok{which}\NormalTok{(data1}\OperatorTok{$}\NormalTok{id }\OperatorTok{%in%}\StringTok{ }\NormalTok{test_id),]}
+\NormalTok{test_ls =}\StringTok{ }\NormalTok{test1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{group_split}\NormalTok{(id)}
+
+\CommentTok{# for each yi}
+\NormalTok{predy =}\StringTok{ }\ControlFlowTok{function}\NormalTok{(obs)\{}
+\NormalTok{  y <-}\StringTok{ }\OtherTok{NULL}
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\DecValTok{2}\NormalTok{)\{}
+\NormalTok{    temp =}\StringTok{ }\NormalTok{obs[i,}\DecValTok{2}\OperatorTok{:}\DecValTok{4}\NormalTok{]}
+\NormalTok{    y =}\StringTok{ }\KeywordTok{rbind}\NormalTok{(y, temp)}
+\NormalTok{  \}}
+  
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{3}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(obs))\{}
+\NormalTok{    d =}\StringTok{ }\NormalTok{y[i}\DecValTok{-1}\NormalTok{,]}\OperatorTok{-}\NormalTok{y[i}\DecValTok{-2}\NormalTok{,]}
+    \CommentTok{#x = c(1, as.matrix(obs[i,8:10]),as.matrix(d))}
+\NormalTok{    x =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\KeywordTok{as.matrix}\NormalTok{(obs[i,}\DecValTok{8}\OperatorTok{:}\DecValTok{13}\NormalTok{]))}
+    \CommentTok{#mu = t(hat_betam %*% x) + hat_rho * y[i-1,]}
+\NormalTok{    mu =}\StringTok{ }\KeywordTok{t}\NormalTok{(hat_betam }\OperatorTok{%*%}\StringTok{ }\NormalTok{x) }\OperatorTok{+}\StringTok{ }\NormalTok{hat_rho }\OperatorTok{*}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(obs[i}\DecValTok{-1}\NormalTok{,}\DecValTok{2}\OperatorTok{:}\DecValTok{4}\NormalTok{])}
+\NormalTok{    epsilon =}\StringTok{ }\KeywordTok{rmvnorm}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DataTypeTok{mean =} \KeywordTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{3}\NormalTok{), }\DataTypeTok{sigma =}\NormalTok{ hat_sigmam)}
+\NormalTok{    y[i,] =}\StringTok{ }\NormalTok{mu }\OperatorTok{+}\StringTok{ }\NormalTok{epsilon}
+\NormalTok{  \}}
+\NormalTok{  err_latitude =}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{((y[,}\DecValTok{1}\NormalTok{] }\OperatorTok{-}\StringTok{ }\NormalTok{obs[,}\DecValTok{2}\NormalTok{])}\OperatorTok{^}\DecValTok{2}\NormalTok{))}
+\NormalTok{  err_longitude =}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{((y[,}\DecValTok{2}\NormalTok{] }\OperatorTok{-}\StringTok{ }\NormalTok{obs[,}\DecValTok{3}\NormalTok{])}\OperatorTok{^}\DecValTok{2}\NormalTok{))}
+\NormalTok{  err_wk =}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{((y[,}\DecValTok{3}\NormalTok{] }\OperatorTok{-}\StringTok{ }\NormalTok{obs[,}\DecValTok{4}\NormalTok{])}\OperatorTok{^}\DecValTok{2}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(}\KeywordTok{list}\NormalTok{(}\DataTypeTok{predy =}\NormalTok{ y, }\DataTypeTok{err =} \KeywordTok{cbind}\NormalTok{(err_latitude, err_longitude, err_wk)))}
+\NormalTok{\}}
+
+\NormalTok{pred_results =}\StringTok{ }\KeywordTok{map}\NormalTok{(test_ls, predy)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{y <-}\StringTok{ }\OtherTok{NULL}
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\KeywordTok{length}\NormalTok{(pred_results)) \{}
+\NormalTok{  y =}\StringTok{ }\KeywordTok{rbind}\NormalTok{(y, pred_results[[i]]}\OperatorTok{$}\NormalTok{predy)}
+\NormalTok{\}}
+
+\NormalTok{test_ord =}\StringTok{ }\NormalTok{test1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{arrange}\NormalTok{(id)}
+
+\NormalTok{dt1 <-}\StringTok{ }\KeywordTok{cbind}\NormalTok{(test_ord,y) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\NormalTok{janitor}\OperatorTok{::}\KeywordTok{clean_names}\NormalTok{() }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{latitude_d, }\OperatorTok{-}\NormalTok{longitude_d, }\OperatorTok{-}\NormalTok{windkt_d, }\OperatorTok{-}\NormalTok{date,}\OperatorTok{-}\NormalTok{year,}\OperatorTok{-}\NormalTok{nature,}\OperatorTok{-}\NormalTok{delta1,}\OperatorTok{-}\NormalTok{delta2,}\OperatorTok{-}\NormalTok{delta3)}
+
+
+
+\CommentTok{##### mse}
+\NormalTok{mse <-}\StringTok{ }\OtherTok{NULL}
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\KeywordTok{length}\NormalTok{(pred_results)) \{}
+\NormalTok{  mse =}\StringTok{ }\KeywordTok{rbind}\NormalTok{(mse, pred_results[[i]]}\OperatorTok{$}\NormalTok{err)}
+\NormalTok{\}}
+
+\NormalTok{test_ord =}\StringTok{ }\NormalTok{test1 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{arrange}\NormalTok{(id)}
+\NormalTok{dt2 <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(mse) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{id =} \KeywordTok{as.character}\NormalTok{(}\KeywordTok{unique}\NormalTok{(test_ord}\OperatorTok{$}\NormalTok{id))) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{select}\NormalTok{(id, }\KeywordTok{everything}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{map =}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(dt1, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ longitude_}\DecValTok{2}\NormalTok{, }\DataTypeTok{y =}\NormalTok{ latitude_}\DecValTok{2}\NormalTok{, }\DataTypeTok{group =}\NormalTok{ id)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_polygon}\NormalTok{(}\DataTypeTok{data =} \KeywordTok{map_data}\NormalTok{(}\StringTok{"world"}\NormalTok{), }
+               \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ long, }\DataTypeTok{y =}\NormalTok{ lat, }\DataTypeTok{group =}\NormalTok{ group), }
+               \DataTypeTok{fill =} \StringTok{"gray25"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{size =} \FloatTok{0.2}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_path}\NormalTok{(}\DataTypeTok{data =}\NormalTok{ dt1, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{group =}\NormalTok{ id, }\DataTypeTok{colour =}\NormalTok{ wind_kt_}\DecValTok{2}\NormalTok{), }\DataTypeTok{size =} \FloatTok{0.5}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{xlim}\NormalTok{(}\OperatorTok{-}\DecValTok{138}\NormalTok{, }\DecValTok{-20}\NormalTok{) }\OperatorTok{+}\StringTok{ }\KeywordTok{ylim}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{55}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{""}\NormalTok{, }\DataTypeTok{y =} \StringTok{""}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"Wind }\CharTok{\textbackslash{}n}\StringTok{(knots)"}\NormalTok{, }\DataTypeTok{title=}\StringTok{"Map of Prediction"}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{panel.background =} \KeywordTok{element_rect}\NormalTok{(}\DataTypeTok{fill =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray30"}\NormalTok{),}
+        \DataTypeTok{axis.text.x =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{axis.text.y =} \KeywordTok{element_blank}\NormalTok{(), }
+        \DataTypeTok{axis.ticks =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{panel.grid.major =} \KeywordTok{element_blank}\NormalTok{(),}
+        \DataTypeTok{panel.grid.minor =} \KeywordTok{element_blank}\NormalTok{())}
+\NormalTok{map}
+
+\NormalTok{map1 =}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(dt1, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ longitude, }\DataTypeTok{y =}\NormalTok{ latitude, }\DataTypeTok{group =}\NormalTok{ id)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_polygon}\NormalTok{(}\DataTypeTok{data =} \KeywordTok{map_data}\NormalTok{(}\StringTok{"world"}\NormalTok{), }
+               \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ long, }\DataTypeTok{y =}\NormalTok{ lat, }\DataTypeTok{group =}\NormalTok{ group), }
+               \DataTypeTok{fill =} \StringTok{"gray25"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{size =} \FloatTok{0.2}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_path}\NormalTok{(}\DataTypeTok{data =}\NormalTok{ dt1, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{group =}\NormalTok{ id, }\DataTypeTok{colour =}\NormalTok{ wind_kt), }\DataTypeTok{size =} \FloatTok{0.5}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{xlim}\NormalTok{(}\OperatorTok{-}\DecValTok{138}\NormalTok{, }\DecValTok{-20}\NormalTok{) }\OperatorTok{+}\StringTok{ }\KeywordTok{ylim}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{55}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{""}\NormalTok{, }\DataTypeTok{y =} \StringTok{""}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"Wind }\CharTok{\textbackslash{}n}\StringTok{(knots)"}\NormalTok{,}\DataTypeTok{title=}\StringTok{"Map of Real"}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{panel.background =} \KeywordTok{element_rect}\NormalTok{(}\DataTypeTok{fill =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray30"}\NormalTok{),}
+        \DataTypeTok{axis.text.x =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{axis.text.y =} \KeywordTok{element_blank}\NormalTok{(), }
+        \DataTypeTok{axis.ticks =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{panel.grid.major =} \KeywordTok{element_blank}\NormalTok{(),}
+        \DataTypeTok{panel.grid.minor =} \KeywordTok{element_blank}\NormalTok{())}
+\NormalTok{map1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dt11 =}\StringTok{ }\NormalTok{dt1 }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(id }\OperatorTok{==}\StringTok{ }\KeywordTok{unique}\NormalTok{(dt1}\OperatorTok{$}\NormalTok{id)[}\DecValTok{10}\NormalTok{]) }
+
+\CommentTok{# CHANTAL.1995}
+\NormalTok{CHANTAL.}\FloatTok{1995.}\NormalTok{pre =}\StringTok{ }\NormalTok{dt11 }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ longitude_}\DecValTok{2}\NormalTok{, }\DataTypeTok{y =}\NormalTok{ latitude_}\DecValTok{2}\NormalTok{, }\DataTypeTok{group =}\NormalTok{ id)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_polygon}\NormalTok{(}\DataTypeTok{data =} \KeywordTok{map_data}\NormalTok{(}\StringTok{"world"}\NormalTok{), }
+               \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ long, }\DataTypeTok{y =}\NormalTok{ lat, }\DataTypeTok{group =}\NormalTok{ group), }
+               \DataTypeTok{fill =} \StringTok{"gray25"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{size =} \FloatTok{0.2}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_path}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{group =}\NormalTok{ id, }\DataTypeTok{colour =}\NormalTok{ wind_kt_}\DecValTok{2}\NormalTok{), }\DataTypeTok{size =} \FloatTok{0.5}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{xlim}\NormalTok{(}\OperatorTok{-}\DecValTok{138}\NormalTok{, }\DecValTok{-20}\NormalTok{) }\OperatorTok{+}\StringTok{ }\KeywordTok{ylim}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{55}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{""}\NormalTok{, }\DataTypeTok{y =} \StringTok{""}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"Wind }\CharTok{\textbackslash{}n}\StringTok{(knots)"}\NormalTok{, }\DataTypeTok{title=}\StringTok{"Map of Prediction (CHANTAL.1995)"}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{panel.background =} \KeywordTok{element_rect}\NormalTok{(}\DataTypeTok{fill =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray30"}\NormalTok{),}
+        \DataTypeTok{axis.text.x =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{axis.text.y =} \KeywordTok{element_blank}\NormalTok{(), }
+        \DataTypeTok{axis.ticks =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{panel.grid.major =} \KeywordTok{element_blank}\NormalTok{(),}
+        \DataTypeTok{panel.grid.minor =} \KeywordTok{element_blank}\NormalTok{())}
+\NormalTok{CHANTAL.}\FloatTok{1995.}\NormalTok{pre}
+
+\NormalTok{CHANTAL.}\FloatTok{1995.}\NormalTok{real =}\StringTok{ }\NormalTok{dt11 }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ longitude, }\DataTypeTok{y =}\NormalTok{ latitude, }\DataTypeTok{group =}\NormalTok{ id)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_polygon}\NormalTok{(}\DataTypeTok{data =} \KeywordTok{map_data}\NormalTok{(}\StringTok{"world"}\NormalTok{), }
+               \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ long, }\DataTypeTok{y =}\NormalTok{ lat, }\DataTypeTok{group =}\NormalTok{ group), }
+               \DataTypeTok{fill =} \StringTok{"gray25"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{size =} \FloatTok{0.2}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_path}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{group =}\NormalTok{ id, }\DataTypeTok{colour =}\NormalTok{ wind_kt), }\DataTypeTok{size =} \FloatTok{0.5}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{xlim}\NormalTok{(}\OperatorTok{-}\DecValTok{138}\NormalTok{, }\DecValTok{-20}\NormalTok{) }\OperatorTok{+}\StringTok{ }\KeywordTok{ylim}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{55}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{""}\NormalTok{, }\DataTypeTok{y =} \StringTok{""}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"Wind }\CharTok{\textbackslash{}n}\StringTok{(knots)"}\NormalTok{, }\DataTypeTok{title=}\StringTok{"Map of Real (CHANTAL.1995)"}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{panel.background =} \KeywordTok{element_rect}\NormalTok{(}\DataTypeTok{fill =} \StringTok{"gray10"}\NormalTok{, }\DataTypeTok{colour =} \StringTok{"gray30"}\NormalTok{),}
+        \DataTypeTok{axis.text.x =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{axis.text.y =} \KeywordTok{element_blank}\NormalTok{(), }
+        \DataTypeTok{axis.ticks =} \KeywordTok{element_blank}\NormalTok{(), }\DataTypeTok{panel.grid.major =} \KeywordTok{element_blank}\NormalTok{(),}
+        \DataTypeTok{panel.grid.minor =} \KeywordTok{element_blank}\NormalTok{())}
+
+\NormalTok{CHANTAL.}\FloatTok{1995.}\NormalTok{real}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"beta_plot1000.jpeg"}\NormalTok{, beta_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"rho_plot1000.jpeg"}\NormalTok{, rho_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"sigma_plot1000.jpeg"}\NormalTok{, sigma_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"beta_plot2000.jpeg"}\NormalTok{, beta_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"rho_plot2000.jpeg"}\NormalTok{, rho_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"sigma_plot2000.jpeg"}\NormalTok{, sigma_plot, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+
+
+\KeywordTok{save}\NormalTok{(dt1, }\DataTypeTok{file=}\StringTok{"pred_res.RData"}\NormalTok{)}
+\KeywordTok{save}\NormalTok{(dt2, }\DataTypeTok{file=}\StringTok{"err.RData"}\NormalTok{)}
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"map_pred_2000.jpeg"}\NormalTok{, map, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"map_real_2000.jpeg"}\NormalTok{, map1, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"CHANTAL_1995_pre_2000.jpeg"}\NormalTok{, CHANTAL.}\FloatTok{1995.}\NormalTok{pre, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"CHANTAL_1995_real_2000.jpeg"}\NormalTok{, CHANTAL.}\FloatTok{1995.}\NormalTok{real, }\DataTypeTok{width =} \DecValTok{8}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+
+\CommentTok{#save(MHresults, file="result_2000.RData")}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dt22 =}\StringTok{ }\NormalTok{dt2 }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(id }\OperatorTok{==}\StringTok{ }\KeywordTok{unique}\NormalTok{(dt1}\OperatorTok{$}\NormalTok{id)[}\DecValTok{10}\NormalTok{]) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{err_latitude_hist =}\StringTok{ }\NormalTok{dt2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(err_latitude)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_histogram}\NormalTok{(}\DataTypeTok{breaks =} \KeywordTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{3}\NormalTok{, }\DataTypeTok{by =} \FloatTok{0.2}\NormalTok{), }
+                 \DataTypeTok{col=}\StringTok{"black"}\NormalTok{, }
+                 \DataTypeTok{fill=}\StringTok{"skyblue3"}\NormalTok{, }
+                 \DataTypeTok{alpha =} \FloatTok{.6}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{title=}\StringTok{"Histogram for Latitude MSE among 71 hurricanes"}\NormalTok{, }\DataTypeTok{x=}\StringTok{"MSE"}\NormalTok{, }\DataTypeTok{y=}\StringTok{"Count"}\NormalTok{)}\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme_bw}\NormalTok{()}
+\NormalTok{err_latitude_hist}
+
+\NormalTok{err_longitude_hist =}\StringTok{ }\NormalTok{dt2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(err_longitude)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_histogram}\NormalTok{(}\DataTypeTok{breaks =} \KeywordTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{30}\NormalTok{, }\DataTypeTok{by =} \DecValTok{2}\NormalTok{), }
+                 \DataTypeTok{col=}\StringTok{"black"}\NormalTok{, }
+                 \DataTypeTok{fill=}\StringTok{"skyblue3"}\NormalTok{, }
+                 \DataTypeTok{alpha =} \FloatTok{.6}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{title=}\StringTok{"Histogram for Longitude MSE among 71 hurricanes"}\NormalTok{, }\DataTypeTok{x=}\StringTok{"MSE"}\NormalTok{, }\DataTypeTok{y=}\StringTok{"Count"}\NormalTok{)}\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme_bw}\NormalTok{()}
+\NormalTok{err_longitude_hist}
+
+\NormalTok{err_wk_hist =}\StringTok{ }\NormalTok{dt2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(err_wk)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_histogram}\NormalTok{(}\DataTypeTok{breaks =} \KeywordTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{150}\NormalTok{, }\DataTypeTok{by =} \DecValTok{10}\NormalTok{), }
+                 \DataTypeTok{col=}\StringTok{"black"}\NormalTok{, }
+                 \DataTypeTok{fill=}\StringTok{"skyblue3"}\NormalTok{, }
+                 \DataTypeTok{alpha =} \FloatTok{.6}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{title=}\StringTok{"Histogram for Maximum Wind Speed MSE among 71 hurricanes"}\NormalTok{, }\DataTypeTok{x=}\StringTok{"MSE"}\NormalTok{, }\DataTypeTok{y=}\StringTok{"Count"}\NormalTok{)}\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme_bw}\NormalTok{()}
+\NormalTok{err_wk_hist}
+
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"err_latitude_hist.jpeg"}\NormalTok{, err_latitude_hist, }\DataTypeTok{width =} \DecValTok{6}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"err_longitude_hist.jpeg"}\NormalTok{, err_longitude_hist, }\DataTypeTok{width =} \DecValTok{6}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"err_wk_hist.jpeg"}\NormalTok{, err_wk_hist, }\DataTypeTok{width =} \DecValTok{6}\NormalTok{, }\DataTypeTok{height =} \DecValTok{4}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+
+\end{document}

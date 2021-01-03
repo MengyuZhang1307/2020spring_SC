@@ -1,0 +1,247 @@
+---
+title: 'Project 4: Baysian modeling of hurrican trajectories'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(truncnorm)
+library(maps)
+library(matrixcalc)
+library(dplyr)
+library(data.table)
+library(caret)
+library(mvtnorm)
+```
+
+## Introduction
+
+The 1989 Atlantic hurricane season officially began on June 1, 1989, and lasted until November 30, 1989. However storms can form outside these dates. For example, Tropical Storm Karen lasted until December 4. This season had average activity with 15 depressions, 3 became a tropical storm, 5 became a hurricane, and 2 became a major hurricane. This was a damaging season because this season featured the powerful Hurricane Hugo. Overall, the storms of the season collectively caused 136 fatalities and at least $10.2 billion in damage. Therefore, efforts to abtain deeper understanding of their physical mechanisms such as Wind.kt (Maximum wind speed in Knot at each check point) for the development and tracking is very important for us.
+
+
+## Obejctive
+Randomly select 80% hurricanes and design a MCMC algorithm to estiamte the posterior distributions of the model parameters. Estimate the model parameters using posteri means and construct their 95% credibility intervals. Apply the developped model to track the remaining 20% hurricans, and evaluate how well your model could predict and track these hurricanes.
+
+
+## Data
+hurrican356.csv collected the track data of 356 hurricanes in  the North Atlantic area since 1989. For all the storms, their location (longitude \& latitude) and maximum wind speed were recorded every 6 hours. The data includes the following variables 
+
+1. **ID**:  ID of the hurricans
+2. **Season**: In which \textbf{year} the hurricane occurred 
+3. **Month**: In which \textbf{month} the hurricane occurred 
+4. **Nature**:  Nature of the hurricane 
+  + ET: Extra Tropical
+  + DS: Disturbance
+  + NR: Not Rated
+  + SS: Sub Tropical
+  + TS: Tropical Storm
+5. **time**: dates and time of the record  
+6. **Latitude** and **Longitude**:  The location of  a hurricane check point 
+7. **Wind.kt**  Maximum wind speed (in Knot) at each check point 
+
+## Method
+Let $t$ be time (in hours) since a hurricane began, and For each hurrican $i$, we denote $\{ Y_{i,1}(t), Y_{i,2}(t), Y_{i,3}(t)\},j=1,2,3$ be the latitude, longitude, and wind speed at time $t$. The following Baysian model was suggested:
+$$Y_{i}(t+6) =  \mu_{i}(t) +\rho Y_{i}(t) + \epsilon_{i}(t)$$
+
+And then we have:
+
+$$\mu_{i}(t) =  \beta_{0}+x_{i,1}(t)\beta_{1} +
+x_{i,2} \beta_{2} + ]
+x_{i,3}\beta_{3} +
+\sum_{k=1}^3\beta_{3+k}\Delta_{i,k}(t-6)$$ 
+$$\Delta_{i,k}(t-6) = Y_{i,k}(t) -Y_{i,k}(t-6),k=1,2,3$$
+For
+$\pi(\boldsymbol{\beta})$ ~ $MVN(\mathbf 0,\ diag(1, p))$, 
+$\pi(\rho)$ follows a trucated normal  $N_{[0,1]}(0.5, 1/5)$
+ $\pi((\sigma^2)^{-1})$ follows a inverse-gamma $(0.001, 0.001)$
+
+What we can conclude from these information: 
+
+Yi is a linear combination of $\mu_i$ and $\rho Y_{i}(t)$  and $\epsilon_{i}(t)$. While $\mu_i$ and $\rho Y_{i}(t)$ is a constant. So $Y_{i}(t+6)$ follow normal distribution with $\mu_{new}(t)$ and variance $\sigma^2$:
+
+$$Y_i(t+6)\sim Normal(\mu_{new}(t),\sigma^2)$$
+
+$$\mu_{new}(t)=\mu_{i}(t)+\rho Y_{i}(t) $$
+To exclude the time series influence on $Y_i$ we choose to use $$\epsilon_i=Y_i(t+6)-\mu_{new}\sim Normal(0,\sigma^2)$$
+
+We set i is the ith hurricane, n is the total number of hurricane. The k denote the kth speed among this hurricane, m is the total measured speeds among this hurricane. 
+
+The poesteria distribution 
+$$f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 )=\frac{1}{\sqrt{2\pi}\sigma}exp(-\frac{(Y_i(t+6)-\mu_{new}-0)^2}{2\sigma^2})$$
+Poesterian distribution: $$\pi(\boldsymbol\beta,\rho,\sigma^2|\epsilon_i)\propto \prod_{i=1}^{n}\prod_{k=1}^{m}f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 )*\pi(\boldsymbol{\beta})*\pi(\rho)*\pi((\sigma^2)^{-1})$$
+
+Take the log form:
+$$\pi'(\boldsymbol\beta,\rho,\sigma^2|\epsilon_i)\propto \sum_{i=1}^{n}\sum_{k=1}^{m}log(f(\epsilon_i|\boldsymbol\beta,\rho,\sigma^2 ))+log(\pi(\boldsymbol\beta))+log(\pi(\rho))+log(\pi((\sigma^2)^{-1}))$$
+
+To find the poeteria distribution, we use the random walk in Metropolis-Hasting algorithm:
+The probability of accepting :
+$$\alpha(\lambda|\boldsymbol\theta)=min(1,\frac{\pi(\boldsymbol\lambda)q(\boldsymbol\theta|\boldsymbol\lambda)}{\pi(\boldsymbol\theta)q(\boldsymbol\lambda\boldsymbol\theta)})$$
+In this situation, we have: $$q(\theta|\lambda)=q(\lambda|\theta)$$
+
+So, $$\alpha(\lambda|\boldsymbol\theta)=min(1,\frac{\pi(\boldsymbol\lambda)}{\pi(\boldsymbol\theta)})=min(1,\pi'(\boldsymbol\lambda)-\pi'(\boldsymbol\theta))$$
+
+Finally ,we can compare the $\alpha(\lambda|\boldsymbol\theta)$ with the random drawed uniform(0,1) number,if $\alpha(\lambda|\boldsymbol\theta)$ is larger, accept the $\lambda$, otherwise still accept $ \theta$.
+
+## Result
+#Bayesian model for hurricane trajectories
+
+## load train $ test set
+
+```{r,message=FALSE,warning=FALSE}
+train = read_csv("train.csv") %>% select(-1)
+test = read_csv("test.csv") %>% select(-1)
+head(train)
+```
+
+
+
+```{r}
+# Starting points
+set.seed(888160)
+rho = rep(0.5, 3) # 1 * 3 vector
+sigma = bayesm::rwishart(3,diag(0.1,3))$IW # 3 * 3 matrix
+beta = matrix(rep(0.001,21),nrow = 3, ncol = 7) # 3 * 7 matrix
+```
+
+
+```{r}
+# Density function.
+# for each yi
+logdy = function(y.each, beta, rho, sigma){
+  x = c(1,y.each[7:12])
+  y = y.each[1:3]
+  #print(t(x))
+  #print(y)
+  #print(beta)
+  mu = beta %*% x + rho*y
+  #print(mu)
+  y.new = y.each[4:6]
+  #print(y.new)
+  dy = dmvnorm(y.new, mean = mu, sigma = sigma)
+  return(log(dy))
+}
+
+
+# logdy(beta, rho, sigma)
+
+
+log.density = function(data = train, beta.=beta, rho.=rho, sigma.=sigma){
+  data = data %>% as.matrix()
+  logdy = apply(data, 1, logdy, beta = beta., rho = rho., sigma = sigma.) # a vec containing each obs' conditional likelihood
+  beta.vec = c(beta.[1,1:ncol(beta.)],beta.[2,1:ncol(beta.)],beta.[3,1:ncol(beta.)]) # flatten the matrix to 1-d array
+  logdens = sum(logdy) + log(dmvnorm(beta.vec, rep(0,21), diag(1,21))) + log(dtruncnorm(rho.[1], a=0, b=1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[2], a = 0, b = 1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[3], a=0, b=1, mean = 0.5, sd = 0.2)) + log(MCMCpack::diwish(sigma., 3, diag(0.1,3))) 
+  return(logdens) #final logdensity
+}
+
+
+#res1 = log.density()
+
+```
+
+
+
+# MH
+
+```{r}
+MHstep.reg = function(para.init = start,a,logdens,iter = 20000){ 
+  # a is a list  a = list(beta,rho,sigma), beta is a 3*7 matrix
+  # start is a list containing initial parameters
+  
+  #starting point
+  ## window
+  a.beta = a[[1]]
+  a.rho = a[[2]]
+  a.sigma = a[[3]]
+  ## initial values of beta, rho, sigma
+  beta.cur = para.init$beta
+  rho.cur = para.init$rho
+  sigma.cur = para.init$sigma
+  
+  beta.MH.res = c(t(beta.cur))
+  rho.MH.res = rho.cur
+  sigma.MH.res = c(sigma.cur[1,],sigma.cur[2,2:3],sigma.cur[3,3])
+  
+  
+  #transition begins
+  for (i in 2:iter) {
+    # store past results
+    print(str_c("#####################  ", i, "/2000", "  #####################"))
+    beta.prev = beta.cur
+    rho.prev = rho.cur
+    sigma.prev = sigma.cur
+  
+    # new results
+    beta.cur = beta.prev + 2 * (runif(1) - 0.5) * a.beta
+    rho.cur = rho.prev + 2 * (runif(1) - 0.5) * a.rho
+    #print("err 1")
+    sigma.cur = sigma.prev + 2 * (runif(1) - 0.5) * a.sigma
+    #print("err 1")
+
+    #print(sum(rho.cur < 1) == 3 & is.positive.definite(sigma.cur))
+     if(sum(rho.cur < 1) == 3 & is.positive.definite(sigma.cur)){
+       #print((log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)))
+      if(log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)){
+        beta.cur = beta.cur
+        rho.cur = rho.cur
+        sigma.cur = sigma.cur
+      }else{
+        beta.cur = beta.prev
+        rho.cur = rho.prev
+        sigma.cur = sigma.prev
+      }
+     }else{
+       beta.cur = beta.prev
+       rho.cur = rho.prev
+       sigma.cur = sigma.prev
+     }
+    
+    # flatten to 1-d arrays
+    beta.MH.res = rbind(beta.MH.res, c(t(beta.cur)))# 1 * 21
+    rho.MH.res = rbind(rho.MH.res,rho.cur) # 1 * 3
+    sigma.MH.res = rbind(sigma.MH.res,c(sigma.cur[1,],sigma.cur[2,2:3],sigma.cur[3,3])) # 3 + 2 +1
+    
+  }
+  return(list(beta = beta.MH.res, rho = rho.MH.res, sigma = sigma.MH.res))
+}
+```
+
+
+```{r test}
+set.seed(888160)
+
+# Starting points
+rho = rep(0.5, 3)
+sigma = bayesm::rwishart(3,diag(0.1,3))$IW
+#sigma = c(sigma[1,],sigma[2,2:3],sigma[3,3])
+beta = matrix(rep(0.01,21),nrow = 3, ncol = 7)
+
+# start para for the function
+start = list(beta = beta, rho = rho, sigma = sigma)
+start$sigma
+
+# Starting 'a'
+beta.a = matrix(c(seq(0.001,0.05,(0.05 - 0.001)/6),seq(0.002,0.06,(0.06 - 0.002)/6),seq(0.003,0.07,(0.07-0.003)/6)),nrow = 3, byrow =  T)
+rho.a = c(0.05,0.05,0.05)
+sigma.a = matrix(rep(0.5,9),3)
+
+####### The following a is a parameter for the MHstep function
+a = list(beta = beta.a, rho = rho.a, sigma = sigma.a)
+a$rho
+a$beta
+a$sigma
+#######
+
+## Implement the regular MH step
+result = MHstep.reg(para.init = start, a = a, logdens = log.density,iter = 100)
+beta.result = result$beta
+rho.result = result$rho
+sigma = result$sigma
+beta.result
+rho.result
+sigma
+```

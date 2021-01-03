@@ -1,0 +1,248 @@
+---
+title: "Untitled"
+author: "Zongchao Liu"
+date: "5/7/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(truncnorm)
+library(maps)
+library(mvtnorm)
+library(matrixcalc)
+```
+
+# Import & visualization
+
+```{r Overlay the hurrican data in the world map}
+dt= read.csv("./hurrican356.csv")
+ggplot(data=dt, aes(x = Longitude, y = Latitude)) + 
+  stat_summary_2d(data = dt, aes(x = Longitude, y = Latitude, z = dt$Wind.kt), fun = median, binwidth = c(1, 1), show.legend = TRUE) + theme_bw()
+library(data.table)
+dt = as.data.table(dt)
+#summary(dt)
+```
+
+
+```{r Additional Plots}
+map <- ggplot(data = dt, aes(x = Longitude, y = Latitude)) + 
+  geom_polygon(data = map_data(map = 'world'), aes(x = long, y = lat, group = group))
+map +
+  stat_summary_2d(data = dt, aes(x = Longitude, y = Latitude, z = dt$Wind.kt), fun = median, binwidth = c(1, 1), show.legend = TRUE, alpha = 0.75) + 
+  ggtitle(paste0("Atlantic Windstorm mean knot")) + theme_bw()
+```
+
+# Show hurricance tracks by month
+
+```{r Show hurricance tracks by month}
+map = ggplot(dt, aes(x = Longitude, y = Latitude, group = ID)) + 
+  geom_polygon(data = map_data("world"), 
+               aes(x = long, y = lat, group = group), 
+               fill = "gray25", colour = "gray10", size = 0.2) + 
+  geom_path(data = dt, aes(group = ID, colour = Wind.kt), size = 0.5) + 
+  xlim(-138, -20) + ylim(3, 55) + 
+  labs(x = "", y = "", colour = "Wind \n(knots)") + 
+  theme(panel.background = element_rect(fill = "gray10", colour = "gray30"),
+        axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+seasonrange = paste(range(dt[, Season]), collapse=" - ")
+
+map + ggtitle(paste("Atlantic named Windstorm Trajectories (", 
+                     seasonrange, ")\n")) 
+```
+
+
+```{r}
+mapMonth = map + facet_wrap(~ Month) +
+  ggtitle(paste("Atlantic named Windstorm Trajectories by Month (", 
+                 seasonrange, ")\n")) 
+mapMonth
+```
+
+#Bayesian model for hurricane trajectories
+
+## load train $ test set
+
+```{r,message=FALSE,warning=FALSE}
+train = read_csv("train.csv") %>% select(-1)
+test = read_csv("test.csv") %>% select(-1)
+head(train)
+```
+
+
+
+```{r}
+# Starting points
+set.seed(888160)
+rho = rep(0.5, 3) # 1 * 3 vector
+sigma = bayesm::rwishart(3,diag(0.1,3))$IW # 3 * 3 matrix
+beta = matrix(rep(0.001,21),nrow = 3, ncol = 7) # 3 * 7 matrix
+```
+
+
+```{r}
+# Density function.
+# for each yi
+logdy = function(y.each, beta, rho, sigma){
+  x = c(1,y.each[7:12])
+  y = y.each[1:3]
+  #print(t(x))
+  #print(y)
+  #print(beta)
+  mu = beta %*% x + rho*y
+  #print(mu)
+  y.new = y.each[4:6]
+  #print(y.new)
+  dy = dmvnorm(y.new, mean = mu, sigma = sigma)
+  return(log(dy))
+}
+
+#test.vec = as.matrix(test.vec)
+#logdy(test.vec,beta, rho, sigma)
+
+
+log.density = function(data = train, beta.=beta, rho.=rho, sigma.=sigma){
+  data = data %>% as.matrix()
+  logdy = apply(data, 1, logdy, beta = beta., rho = rho., sigma = sigma.) # a vec containing each obs' conditional likelihood
+  beta.vec = c(beta.[1,1:ncol(beta.)],beta.[2,1:ncol(beta.)],beta.[3,1:ncol(beta.)]) # flatten the matrix to 1-d array
+  logdens = sum(logdy) + log(dmvnorm(beta.vec, rep(0,21), diag(1,21))) + log(dtruncnorm(rho.[1], a=0, b=1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[2], a = 0, b = 1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[3], a=0, b=1, mean = 0.5, sd = 0.2)) + log(MCMCpack::diwish(sigma., 3, diag(0.1,3))) 
+  return(logdens) #final logdensity
+}
+
+
+#res1 = log.density()
+
+```
+
+
+
+# MH
+
+```{r}
+MHstep.reg = function(para.init = start,a,logdens,iter = 20000){ 
+  # a is a list  a = list(beta,rho,sigma), beta is a 3*7 matrix
+  # start is a list containing initial parameters
+  
+  #starting point
+  ## window
+  a.beta = a[[1]]
+  a.rho = a[[2]]
+  a.sigma = a[[3]]
+  ## initial values of beta, rho, sigma
+  beta.cur = para.init$beta
+  rho.cur = para.init$rho
+  sigma.cur = para.init$sigma
+  
+  beta.MH.res = c(t(beta.cur))
+  rho.MH.res = rho.cur
+  sigma.MH.res = c(sigma.cur[1,],sigma.cur[2,2:3],sigma.cur[3,3])
+  
+  
+  #transition begins
+  for (i in 2:iter) {
+    print(str_c("#####################  ", i, "/",iter, "  #####################"))
+    # store past results
+    beta.prev = beta.cur
+    rho.prev = rho.cur
+    sigma.prev = sigma.cur
+  
+    # new results
+    beta.cur = beta.prev + 2 * matrix((runif(21) - 0.5),nrow = 3, ncol = 7) * a.beta
+    rho.cur = rho.prev + 2 * (runif(3) - 0.5) * a.rho
+    #print("err 1")
+    sigma.cur = sigma.prev + 2 * (runif(1) - 0.5) * a.sigma
+    #print("err 1")
+
+    #print(sum(rho.cur < 1) == 3 & is.positive.definite(sigma.cur))
+     if(sum(rho.cur < 1) == 3 & is.positive.definite(sigma.cur)){
+       #print((log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)))
+      if(log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)){
+        beta.cur = beta.cur
+        rho.cur = rho.cur
+        sigma.cur = sigma.cur
+      }else{
+        beta.cur = beta.prev
+        rho.cur = rho.prev
+        sigma.cur = sigma.prev
+      }
+     }else{
+       beta.cur = beta.prev
+       rho.cur = rho.prev
+       sigma.cur = sigma.prev
+     }
+    
+    # flatten to 1-d arrays
+    beta.MH.res = rbind(beta.MH.res, c(t(beta.cur)))# 1 * 21
+    rho.MH.res = rbind(rho.MH.res,rho.cur) # 1 * 3
+    sigma.MH.res = rbind(sigma.MH.res,c(sigma.cur[1,],sigma.cur[2,2:3],sigma.cur[3,3])) # 3 + 2 +1
+    
+  }
+  return(list(beta = beta.MH.res, rho = rho.MH.res, sigma = sigma.MH.res))
+}
+```
+
+
+```{r test}
+set.seed(888160)
+
+# Starting points
+rho = rep(0.5, 3)
+sigma = bayesm::rwishart(3,diag(0.1,3))$IW
+#sigma = c(sigma[1,],sigma[2,2:3],sigma[3,3])
+beta = matrix(rep(0.01,21),nrow = 3, ncol = 7)
+
+# start para for the function
+start = list(beta = beta, rho = rho, sigma = sigma)
+start$sigma
+
+# Starting 'a'
+beta.a = matrix(c(seq(0.0001/5,0.005/5,(0.005/5 - 0.0001/5)/6),seq(0.0002/5,0.006/5,(0.006/5 - 0.0002/5)/6),seq(0.0003/5,0.007/5,(0.007/5-0.0003/5)/6)),nrow = 3, byrow =  T)
+rho.a = c(0.001,0.0004,0.001/5)
+sigma.a = matrix(rep(0.01,9),3)
+
+####### The following a is a parameter for the MHstep function
+a = list(beta = beta.a, rho = rho.a, sigma = sigma.a)
+a$rho
+a$beta
+a$sigma
+#######
+
+## Implement the regular MH step
+result = MHstep.reg(para.init = start, a = a, logdens = log.density,iter = 100)
+beta.result = data.frame(result$beta)
+rho.result = data.frame(result$rho)
+sigma.result = data.frame(result$sigma)
+beta.result
+rho.result
+sigma.result
+```
+
+
+# check the chain
+
+```{r}
+beta.result %>%
+  mutate(iter = 1:nrow(beta.result)) %>%
+  gather(., key = "beta", value = "value", X1:X21) %>%
+  ggplot(aes(x = iter, y = value, color = beta)) +
+  geom_line() + theme_bw()
+
+rho.result %>%
+  mutate(iter = 1:nrow(rho.result)) %>%
+  gather(., key = "rho", value = "value", X1:X3) %>%
+  ggplot(aes(x = iter, y = value, color = rho)) +
+  geom_line()
+
+sigma.result %>%
+  mutate(iter = 1:nrow(sigma.result)) %>%
+  gather(., key = "sigma", value = "value", X1:X6) %>%
+  ggplot(aes(x = iter, y = sqrt(value), color = sigma)) +
+  geom_line()
+  
+  
+```
+

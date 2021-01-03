@@ -1,0 +1,267 @@
+---
+title: "Homework 2 on Newton's methods"
+author: "Mengyu Zhang / mz2777"
+date: "Due: 03/18/2020, Wednesday, by 1pm"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem 1
+
+Design an optimization algorithm to find the minimum of the continuously differentiable function $f(x) =-e^{-x}\sin(x)$ on the closed interval $[0,1.5]$. Write out your algorithm and implement it into \textbf{R}.
+
+
+# Answer
+
+By using Golden Section search in $[0,1.5]$, $x_1 = upper.bound - golden.ratio\times(upper.bound - lower.bound)$, $x_2 = upper.bound - golden.ratio^2\times(upper.bound - lower.bound)$. The minimum of $f(x)$ is -0.3223969 at point 0.7854006.
+
+```{r }
+df = function(x){
+  return(-exp(-x)*sin(x))
+}
+
+golden.section.search = function(f, lower.bound, upper.bound, tolerance)
+{
+   golden.ratio = 2/(sqrt(5) + 1)
+
+   ### Use the golden ratio to set the initial test points
+   x1 = upper.bound - golden.ratio*(upper.bound - lower.bound)
+   x2 = upper.bound - golden.ratio^2*(upper.bound - lower.bound)
+
+   ### Evaluate the function at the test points
+   f1 = f(x1)
+   f2 = f(x2)
+
+   iteration = 0
+   
+   res = NULL
+
+   while (abs(upper.bound - lower.bound) > tolerance)
+   {
+      iteration = iteration + 1
+
+      if (f2 > f1)
+      {
+         ### Set the new upper bound
+         upper.bound = x2
+         x2 = x1
+         f2 = f1
+
+         x1 = upper.bound - golden.ratio*(upper.bound - lower.bound)
+         f1 = f(x1)
+      } 
+      else 
+      {
+         lower.bound = x1
+         x1 = x2
+         f1 = f2
+         x2 = upper.bound - golden.ratio^2*(upper.bound - lower.bound)
+         f2 = f(x2)
+      }
+      res = rbind(res, c(iteration, f1, f2, lower.bound, upper.bound, x1, x2))
+   }
+   cat('', '\n')
+   cat('Final Lower Bound =', round(lower.bound,3), '\n')
+   cat('Final Upper Bound =', round(upper.bound,3), '\n')
+   estimated.minimizer = round((lower.bound + upper.bound)/2,3)
+   cat('Estimated Minimizer =', round(estimated.minimizer,3), '\n')
+   estimated.minimum = f(round(estimated.minimizer,3))
+   cat('Estimated Minimum =', round(estimated.minimum,3), '\n')
+   colnames(res) = c("Iteration","f1","f2","New Lower Bound","New Upper Bound","New Lower Test Point","New Upper Test Point")
+   return(res)
+}
+
+golden.section.search(df, 0, 1.5, 1e-5)
+```
+```{r}
+x = seq(0,2,0.01)
+y = -exp(-x)*sin(x)
+plot(x,y, 'l')
+abline(v = 0.7854006, lty = 3, col="red")
+text(0.7854006,-0.3223969,paste("(",0.785,",",-0.322,")"),pos=3,cex=0.5)
+```
+
+
+# Problem 2
+The Poisson distribution is often used to model ``count`` data ---
+e.g., the number of events in a given time period.  
+The Poisson regression model states that
+$$Y_i \sim \textrm{Poisson}(\lambda_i),$$
+where
+$$\log \lambda_i = \alpha + \beta x_i $$
+ for some explanatory variable
+$x_i$.  The question is how to estimate $\alpha$ and $\beta$ given a
+set of independent data $(x_1, Y_1), (x_2, Y_2), \ldots, (x_n, Y_n)$.
+\begin{enumerate}
+\item Modify the Newton-Raphson function from the class notes to include
+a step-halving step.
+\item Further modify this function to ensure that the direction of the
+step is an ascent direction.   (If it is not, the program should take appropriate
+action.)
+\item Write code to apply the resulting modified Newton-Raphson function
+to compute maximum likelihood estimates for $\alpha$ and $\beta$
+in the Poisson regression setting.
+\end{enumerate}
+
+\vskip 5mm
+\noindent
+The Poisson distribution is given by
+$$P(Y=y) = \frac{\lambda^y e^{-\lambda}}{y!}$$
+for $\lambda > 0$. 
+
+
+# Answer: 
+
+I use a simulation to test the reliability of my codes. 70 observations that following poisson distribution has been randomly generated with true $\alpha = 1$ and true $\beta = -2$. Newton Raphson algorithm starts at point (0,0) and converges at the 5th irritation with estimated $\hat\alpha = 0.9819444$ and $\hat\beta = -2.007312$
+
+```{r }
+# Function to compute the loglikelihood, the gradient, and hessian matrix
+poissonstuff <- function(dat, betavec) {
+  u <- betavec[1] + betavec[2] * dat$x
+  # lambda
+  lambda <- exp(u)
+  loglik <- sum(dat$y * u - lambda - log(factorial(dat$y)))
+  grad <- c(sum(dat$y - lambda), sum(dat$x * (dat$y - lambda)))
+# gradient at betavec 
+  Hess <- - matrix(c(sum(lambda),
+                    rep(sum(dat$x * lambda),2),
+                    sum(dat$x^2 * lambda)), ncol=2)
+# Hessian at betavec
+  return(list(loglik = loglik, grad = grad, Hess = Hess))
+}
+```
+
+```{r}
+# Newton Raphson function
+NewtonRaphson <- function(dat, func, start, tol=1e-10, maxiter = 20000) {
+  i <- 0
+  cur <- start
+  stuff <- func(dat, cur)
+  res <- c(0, stuff$loglik, cur)
+  prevloglik <- -Inf      # To make sure it iterates
+  
+  while(i < maxiter && abs(stuff$loglik - prevloglik) > tol)
+    {
+    i <- i + 1
+    prevloglik <- stuff$loglik
+    prev <- cur
+    cur <- prev - solve(stuff$Hess) %*% stuff$grad
+    prevstuff<- stuff
+    stuff <- func(dat, cur)        # log-lik, gradient, Hessian
+    gamma <- 0.01
+    # ensure that the direction of the step is an ascent direction
+    while(max(eigen(stuff$Hess)$value) > 0){
+      
+      stuff$Hess <- stuff$Hess - diag(2) * gamma
+      gamma <- gamma + 0.01
+    }
+    
+    # step-halving
+    if (stuff$loglik > prevloglik)
+    {
+        res <- rbind(res, c(i, stuff$loglik, cur))# Add current values to results matrix
+    }
+    else 
+    {
+      lambda <- 1
+      
+      while (stuff$loglik < prevloglik) {
+        lambda <- lambda / 2 # step-halving
+        cur <- prev - lambda * solve(prevstuff$Hess) %*% prevstuff$grad
+        stuff <- func(dat, cur)        # log-lik, gradient, Hessian
+      }
+        res <- rbind(res, c(i, stuff$loglik, cur))# Add current values to results matrix
+    }
+    }
+  return(res)
+}
+
+```
+
+```{r}
+# data generation
+set.seed(123)
+# generate some data 
+n <- 70
+truebeta <- c(1, -2) # true beta
+x <- rnorm(n)
+lambda <- exp(truebeta[1] + truebeta[2] * x)
+y <- rpois(n, lambda)
+
+NewtonRaphson(list(x=x,y=y), poissonstuff,c(0, 0)) # start point (0,0)
+```
+
+# problem 3
+
+\vskip 10pt
+Consider the ABO blood type data, where you have $N_{\mbox{obs}} = (N_A,N_B,N_O,N_{AB}) = ( 26, 27, 42, 7)$.
+
+\begin{itemize}
+\item design an EM algorithm to estimate  the allele frequencies, $P_A$, $P_B$ and $P_O$; and 
+
+\item Implement your algorithms in R, and present your results..
+\end{itemize}
+
+# Answer: 
+
+With start point $(\frac{1}{3},\frac{1}{3},\frac{1}{3})$, this algorithm converges to (0.1772807, 0.1832544, 0.6394649), representing allele frequencies, $P_A$, $P_B$ and $P_O$, at 15th irritation.
+
+## E-step
+
+$$
+\begin{array}{l}N_{A / A}^{(k)}=E\left(N_{A A} | N_{\text {obs }}, p^{(k)}\right)=N_{A} \times \frac{p_{A}^{(k)^{2}}}{p_{A}^{(k)^{2}}+2 p_{A}^{(k)} p_{O}^{(k)}} \\ N_{A O}^{(k)}=E\left(N_{A / 0} | N_{\text {obs }}, p^{(k)}\right)=N_{A} \times \frac{2 p_{A}^{(k)} p_{O}^{(k)}}{p_{A}^{(k)}+2 p_{A}^{(k)} p_{O}^{(k)}} \\ N_{B / B}^{(k)}=E\left(N_{B B} | N_{\text {obs }}, p^{(k)}\right)=N_{B} \times \frac{p_{B}^{(k)^{2}}}{p_{B}^{(k)^{2}}+2 p_{B}^{(k)} p_{O}^{(k)}} \\ N_{B l O}^{(k)}=E\left(N_{B I O} | N_{\text {obs }}, p^{(k)}\right)=N_{B} \times \frac{2 p_{B}^{(k)} p_{O}^{(k)}}{p_{B}^{(k)^{2}}+2 p_{B}^{(k)} p_{O}^{(k)}}\end{array}
+$$
+$$
+\begin{array}{l}E\left(N_{A / B} | N_{\text {obs }}, p^{(k)}\right)=N_{A / B} \\ E\left(N_{O / O} | N_{\text {obs }}, p^{(k)}\right)=N_{O / O}\end{array}
+$$
+
+## M-step
+
+$$
+\begin{aligned} 
+p_{A}^{(k+1)} &=\frac{2 N_{A / A}^{(k)}+N_{A O}^{(k)}+N_{A B}^{(k)}}{2 n} \\ 
+p_{B}^{(k+1)} &=\frac{2 N_{B / B}^{(k)}+N_{B / O}^{(k)}+N_{A / B}^{(k)}}{2 n} \\ 
+p_{O}^{(k+1)} &=\frac{2 N_{O / O}^{(k)}+N_{A / O}^{(k)}+N_{B / O}^{(k)}}{2 n} 
+\end{aligned}
+$$
+
+```{r }
+# N=(Na,Nb,Nab,No)
+# p=(pa,pb,po)
+emstep <- function(N,p) {
+  #E-step
+  Naa <- N[1] * p[1]^2 / (p[1]^2 + 2 * p[1] * p[3])
+  Nao <- N[1] * 2 * p[1] * p[3] / (p[1]^2 + 2 * p[1] * p[3])
+  Nbb <- N[2] * p[2]^2 / (p[2]^2 + 2 * p[2] * p[3])
+  Nbo <- N[2] * 2 * p[2] * p[3] / (p[2]^2 + 2 * p[2] * p[3])
+  #M-step
+  n <- sum(N)
+  p[1] = (2 * Naa + Nao + N[3]) / (2 * n)
+  p[2] = (2 * Nbb + Nbo + N[3]) / (2 * n)
+  p[3] = (Nao + Nbo + 2 * N[4]) / (2 * n)
+  p
+  return(p)
+}
+
+EMmix <- function(N, p, nreps = 15) {
+i <- 0
+res <- c(0, p)
+while(i < nreps) {
+i <- i + 1
+p <- emstep(N,p)
+res <- rbind(res, c(i,p))
+}
+return(rbind(res))
+}
+
+#Data
+N <- c(26,27,7,42)
+#Starting value
+p <- c(1,1,1) / 3
+
+
+EMmix(N,p)
+```

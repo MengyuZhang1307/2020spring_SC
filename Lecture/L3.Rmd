@@ -1,0 +1,184 @@
+---
+title: "lecture 3"
+author: "Mengyu Zhang"
+date: "2/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## 1.1  Solving a nonlinear equation of one variable
+
+#### 1.1.1 Bisection algorithm
+```{r}
+dloglikgamma = function(x, a) {
+  return(-log(mean(x)) + log(a) - digamma(a) + mean(log(x)))
+  }
+```
+
+```{r}
+x = rgamma(20, shape=5, scale = 2) # Generate some gammas with
+dloglikgamma(x, 0.1)   # looking for starting values for a and
+dloglikgamma(x, 100)
+a= 0.1
+b=100
+tol = 1e-10
+i = 0  # iteration index
+cur = (a + b) / 2
+res = c(i, cur, dloglikgamma(x, cur))
+
+while (abs(dloglikgamma(x, cur)) > tol) {
+  i <- i + 1
+  if (dloglikgamma(x, a) * dloglikgamma(x, cur) > 0)
+    a <- cur
+  else
+    b <- cur
+  cur <- (a + b) / 2
+  res <- rbind(res, c(i, cur, dloglikgamma(x, cur)))
+}
+alphahat = res[nrow(res), 2]
+betahat = mean(x) / alphahat
+res
+```
+
+#### 1.1.2 Newton’s method
+
+```{r}
+d2loglikgamma <- function(x, a) {
+  return(1/a - trigamma(a))
+  } 
+i = 0
+
+cur <- start <- 1
+
+resnewton <- c(i, cur, dloglikgamma(x, cur))
+while (abs(dloglikgamma(x, cur)) > tol) {
+  i <- i + 1
+  cur <- cur - dloglikgamma(x, cur) / d2loglikgamma(x, cur)
+  resnewton <- rbind(resnewton, c(i, cur, dloglikgamma(x, cur)))
+}
+
+alphahat <- resnewton[nrow(resnewton), 2]
+
+betahat <- mean(x)/alphahat
+
+resnewton
+```
+
+## 1.2 Golden section search to maximize afunction
+
+#### 
+We generate some data:
+```{r}
+n = 100
+theta <- 0.2
+Xdata <- rmultinom(n, 40, c((2 + theta)/4, (1 - theta)/2,theta/4))
+```
+Write R program to find MLE ofθ.
+
+## 1.3 Optimization of a multivariate function:Some preliminaries
+
+
+```{r}
+
+```
+
+## 1.4  The Newton-Raphson algorithm
+```{r}
+# Function to compute the loglikelihood, the gradient, and
+# the Hessian matrix for data dat evaluated at the parameter# value betavec.
+#
+# dat - A list with components#            
+# x - vector of explanatory variables
+# y - vector of corresponding (binary) response variables
+# betavec - [beta_0, beta_1] - the vector of parameter values at which to evaluate these quantities
+#
+# Returns a list with the following components evaluated at beta
+#   loglik - (scalar) the log likelihood
+#   grad   - (vector of length 2) gradient
+#   Hess   - (2 x 2 matrix) Hessian
+#
+logisticstuff <- function(dat, betavec) {
+  u <- betavec[1] + betavec[2] * dat$x
+  expu <- exp(u)
+  loglik <- sum(dat$y * u - log(1 + expu))
+# Log-likelihood at betavec
+  p <- expu / (1 + expu)
+# P(Y_i=1|x_i)
+  grad <- c(sum(dat$y - p), sum(dat$x * (dat$y - p)))
+# gradient at betavec
+  Hess <- -matrix(c(sum(p * (1 - p)),
+                    rep(sum(dat$x * p * (1-p)),2),
+                    sum(dat$x^2 * p * (1 - p))), ncol=2)
+# Hessian at betavec
+  return(list(loglik = loglik, grad = grad, Hess = Hess))}
+```
+Generate some data:
+```{r}
+n <- 40
+truebeta <- c(1, -2)
+x <- rnorm(n)
+expu <- exp(truebeta[1] + truebeta[2] * x)
+y <- runif(n) < expu / (1 + expu)
+```
+
+```{r}
+test1 <- logisticstuff(list(x = x, y = y), c(1, -2))
+test1
+#The first step of the Newton-Raphson algorithm, with starting values(1,−2)is thus
+theta1 <- c(1, -2) - solve(test1$Hess) %*% test1$grad
+theta1
+#We would then compute the loglikelihood, gradient, and Hessian atthis new value:
+test2 <- logisticstuff(list(x = x, y = y), theta1)
+test2
+```
+Does the likelihood increase at the new values?
+ The next step would thus be
+ 
+```{r}
+theta2 <- theta1 - solve(test2$Hess) %*% test2$grad
+theta2
+```
+ 
+ 
+A simple function to do Newton-Raphson:
+```{r}
+# Function to maximize a likelihood using the Newton-Raphson
+# algorithm.
+#
+# dat     - data (see specifications for func)
+# func    - function to compute log likelihood, gradient,
+#              and Hessian for data and a given choice of the#              parameter vector. must be called as func(dat, par)
+#              and return a list with
+#              elements
+#                 loglik - log likelihood
+#                 grad   - gradient
+#                 Hess   - Hessian
+# start   - vector of starting values -- must have same
+#              dimension as second argument to func
+# tol     - tolerance: the program stops when the difference
+#             in consecutive log likelihood values is less than
+#              tol in absolute value
+# maxiter - maximum number of iterations before the program
+#                stops execution
+# Returns a matrix with 1st column = iteration number, 2nd column = log
+#   likelihood, 3rd column = par[1] value, 4th column = par[2] value, ...
+#
+NewtonRaphson <- function(dat, func, start, tol=1e-10,maxiter = 200) {
+  i <- 0
+  cur <- start
+  stuff <- func(dat, cur)
+  res <- c(0, stuff$loglik, cur)
+  prevloglik <- -Inf      # To make sure it iterates
+  while(i < maxiter && abs(stuff$loglik - prevloglik) > tol){
+    i <- i + 1
+    prevloglik <- stuff$loglik
+    prev <- cur
+    cur <- prev - solve(stuff$Hess) %*% stuff$grad
+    stuff <- func(dat, cur)        # log-lik, gradient, Hessian
+    res <- rbind(res, c(i, stuff$loglik, cur))# Add current values to results matrix
+  }
+  return(res)}
+```
+

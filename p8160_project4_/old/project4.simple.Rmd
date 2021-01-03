@@ -1,0 +1,219 @@
+---
+title: "SimpleModel"
+author: "Zongchao Liu"
+date: "5/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(truncnorm)
+library(maps)
+library(mvtnorm)
+library(matrixcalc)
+library(invgamma)
+```
+
+
+```{r}
+train = read_csv("train.csv") %>% select(-1)
+test = read_csv("test.csv") %>% select(-1)
+head(train)
+```
+
+
+# starting point
+
+```{r}
+# Starting points
+set.seed(888160)
+rho = rep(0.5) # only 1 rho
+sigma = 100
+beta = matrix(rep(0.001,7),nrow = 1) # 1 * 7 matrix
+```
+
+# 
+
+```{r}
+# Density function.
+# for each yi
+logdy = function(y.each, beta, rho, sigma){
+  x = c(1,as.numeric(y.each[7:12])) %>% as.matrix()
+  y = y.each[3] %>% as.matrix() # current wind speed at t
+  #print(x)
+  #print(y)
+  #print(beta)
+  mu = beta %*% x + rho*y
+  #print(mu)
+  y.new = y.each[6] %>% as.matrix()
+  #print(class(y.new))
+  dy = dnorm(y.new, mean = mu, sd = sigma)
+  #print(mu)
+  #print(sigma)
+  #print(dy)
+  return(log(dy))
+}
+
+
+y.each = test.vec
+data = train
+test.vec = data[1,]
+test.vec[6] %>% as.matrix()
+logdy(test.vec,beta, rho, sigma)
+
+# apply(data, 1, logdy, beta = beta, rho = rho, sigma = sigma)
+y.each = data
+
+log.density = function(data = train, beta.= beta, rho.=rho, sigma.= sigma){
+  data = data %>% as.matrix()
+  logdy1 = apply(data, 1, logdy, beta = beta., rho = rho., sigma = sigma.) # a vec containing each obs' conditional likelihood
+  logdens = sum(logdy1) + log(dmvnorm(beta., rep(0,7), diag(1,7))) + log(dtruncnorm(rho., a=0, b=1, mean = 0.5, sd = 0.2)) +  log(dgamma(sigma.,shape = 0.001, scale  = 1000)) #最后一个地方可能错了
+  return(logdens) 
+}
+```
+
+
+#MHstep
+
+```{r}
+MHstep.reg = function(para.init = start,a,logdens,iter = 20000){ 
+  # a is a list  a = list(beta,rho,sigma), beta is a 3*7 matrix
+  # start is a list containing initial parameters
+  
+  #starting point
+  ## window
+  a.beta = a[[1]]
+  a.rho = a[[2]]
+  a.sigma = a[[3]]
+  ## initial values of beta, rho, sigma
+  beta.cur = para.init$beta
+  rho.cur = para.init$rho
+  sigma.cur = para.init$sigma
+  
+  beta.MH.res = beta.cur
+  rho.MH.res = rho.cur
+  sigma.MH.res = sigma.cur
+  
+  
+  #transition begins
+  for (i in 2:iter) {
+    if(i %% 10 == 0){
+    print(str_c("#####################  ", i, "/",iter, "  #####################"))}
+    # store past results
+    beta.prev = beta.cur
+    rho.prev = rho.cur
+    sigma.prev = sigma.cur
+  
+    # new results
+    beta.cur = beta.prev + 2 * matrix((runif(7) - 0.5),nrow = 1) * a.beta
+    rho.cur = rho.prev + 2 * (runif(1) - 0.5) * a.rho
+    #print("err 1")
+    #sigma.mat = matrix(c(runif(9) - 0.5),3,3)
+    #sigma.mat[lower.tri(sigma.mat)] = 0
+    #sigma.mat = sigma.mat + t(sigma.mat) - diag(diag(sigma.mat))
+    sigma.cur = sigma.prev + 2 * (runif(1) - 0.5) * a.sigma
+    #print("err 1")
+
+    #print(sum(rho.cur < 1) == 3 & is.positive.definite(sigma.cur))
+     if(rho.cur < 1 & sigma.cur > 0){
+       #print((log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)))
+      if(log(runif(1)) < logdens(beta.=beta.cur, rho.=rho.cur, sigma. = sigma.cur) - logdens(beta.=beta.prev, rho.=rho.prev, sigma.=sigma.prev)){
+        beta.cur = beta.cur
+        rho.cur = rho.cur
+        sigma.cur = sigma.cur
+      }else{
+        beta.cur = beta.prev
+        rho.cur = rho.prev
+        sigma.cur = sigma.prev
+      }
+     }else{
+       beta.cur = beta.prev
+       rho.cur = rho.prev
+       sigma.cur = sigma.prev
+     }
+    
+    # flatten to 1-d arrays
+    beta.MH.res = rbind(beta.MH.res, beta.cur)# 1 * 21
+    rho.MH.res = rbind(rho.MH.res,rho.cur) # 1 * 3
+    sigma.MH.res = rbind(sigma.MH.res,sigma.cur) # 3 + 2 +1
+    
+  }
+  return(list(beta = beta.MH.res, rho = rho.MH.res, sigma = sigma.MH.res))
+}
+
+```
+
+
+```{r}
+set.seed(2)
+
+# Starting points
+rho = 1
+
+sigma = 10
+
+#sigma = c(sigma[1,],sigma[2,2:3],sigma[3,3])
+beta = rep(0,7)
+# start para for the function
+start = list(beta = beta, rho = rho, sigma = sigma)
+start$sigma
+
+# Starting 'a'
+beta.a = seq(1e-3,1e-2,(1e-2-1e-3)/6)
+rho.a = 1e-3
+sigma.a = 4
+
+####### The following a is a parameter for the MHstep function
+a = list(beta = beta.a, rho = rho.a, sigma = sigma.a)
+a$rho
+a$beta
+a$sigma
+#######
+
+
+## Implement the regular MH step
+result = MHstep.reg(para.init = start, a = a, logdens = log.density,iter = 200)
+beta.result = data.frame(result$beta)
+rho.result = data.frame(result$rho)
+sigma.result = data.frame(result$sigma)
+
+# save the files
+#beta.result
+#rho.result
+#sigma.result
+
+
+```
+
+
+# plots
+
+```{r}
+beta.result %>%
+  mutate(iter = 1:nrow(beta.result)) %>%
+  #filter(iter <= 100) %>%
+  gather(., key = "beta", value = "value", X1:X7) %>%
+  ggplot(aes(x = iter, y = value, color = beta)) +
+  geom_line() + theme_bw() +
+  labs(title = "Chain for Beta")
+
+rho.result %>%
+  mutate(iter = 1:nrow(rho.result)) %>%
+  gather(., key = "rho", value = "value", result.rho) %>%
+  ggplot(aes(x = iter, y = value, color = rho)) +
+  geom_line() + theme_bw() +
+  labs(title = "Chain for Rho")
+
+sigma.result %>%
+  mutate(iter = 1:nrow(sigma.result)) %>%
+  gather(., key = "sigma", value = "value", result.sigma) %>%
+  ggplot(aes(x = iter, y = value, color = sigma)) +
+  geom_line() + theme_bw() +
+  labs(title = "Chain for Sigma")
+  
+length(unique(beta.result$X1))
+length(unique(rho.result$result.rho))
+length(unique(sigma.result$result.sigma))
+```
+

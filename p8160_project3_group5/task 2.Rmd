@@ -1,0 +1,169 @@
+---
+title: "Untitled"
+author: "Yuanzhi Yu"
+date: "2020/4/27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(MASS)
+library(mvtnorm)
+library(dplyr)
+library(qrnn)
+library(stats)
+library(matrixcalc)
+library(pracma)
+```
+
+## data cleaning
+
+```{r}
+covid = read.csv("covid19-1.csv")
+covid = covid %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(country_region, province_state, date, confirmed_cases) %>% 
+  filter(confirmed_cases != 0)
+
+
+# region with confirm case > 20
+df_country = covid %>% 
+  group_by(country_region) %>% 
+  summarise(max=max(confirmed_cases)) %>% 
+  filter(max > 20)
+region_index = as.character(unique(df_country$country_region))
+
+# all regions
+df.region = function(covid, region) {
+  df.r = covid %>% 
+    filter(country_region == region) %>% 
+    group_by(country_region, date) %>% 
+    summarise(cases = sum(confirmed_cases)) %>% 
+    mutate(formal_date = as.Date(date, '%m/%d/%Y')) %>% 
+    mutate(time = as.numeric(formal_date-min(formal_date)))%>% 
+    arrange(time)  %>% 
+    dplyr::select(region = country_region, date, time, cases)
+  df.r
+}
+i= 1
+df_list=vector("list", length = length(region_index))
+while(i < length(region_index)+1){
+  df_list[[i]]   = df.region(covid, region_index[i])
+  i = i+1
+}
+for (i in 1:length(df_list)){
+names(df_list)[i] <- region_index[i]
+}
+```
+
+```{r}
+res = read.csv("parameters.csv") %>% 
+  dplyr::select(-X) %>% 
+  mutate(
+    a_value = round(a,0),
+    b_value = round(b,3),
+    c_value = round(c,0)
+  ) 
+all_t=NULL
+for(c in 1:length(df_list))
+all_t=rbind(all_t,df_list[[c]][nrow(df_list[[c]]),3])
+sum((res[,7])<all_t[,1]) # total country pass the mid point
+names = res[which((res[,7])<all_t[,1]),4]# names of those country
+```
+
+## EM
+
+```{r}
+
+# data = covid_test, cluster_n = cluster number
+EM = function(data, cluster_n){
+  data = as.matrix(data) %>% scale()
+  n = nrow(data)
+  q = ncol(data)
+  p_j = rep(1/cluster_n, cluster_n)
+  mu = data[sample(n, cluster_n), ] %>% as.matrix()
+  covmat = diag(ncol(data))
+  covlist = list()
+  for(i in 1:cluster_n){
+    covlist[[i]] = covmat
+  }
+count = 1
+while(count < 100){     
+  mu_new = mu
+  
+  # E-step: Evaluate posterior probability, set as gamma     
+  gamma = c()     
+  for(j in 1:cluster_n){       
+    gamma2 = apply(data,1, dmvnorm, mean = mu[j,], sigma = covlist[[j]])       
+    gamma = cbind(gamma, gamma2)     
+  }
+    
+  # M- step: Calculate mu     
+  tempmat = matrix(rep(p_j, n), nrow = n,byrow = T)     
+  r = (gamma * tempmat) / rowSums(gamma * tempmat)     
+  mu = t(r) %*% data / colSums(r)
+  
+  # M- step: Calculate Sigma and p     
+  for(j in 1:cluster_n){       
+    sigma = matrix(rep(0, q^2), ncol = q)       
+    for(i in 1:n){         
+      sigma = sigma + r[i,j] * (data[i,] - mu_new[j,]) %*% t(data[i,] - mu_new[j,])       
+      }       
+    covlist[[j]] = sigma/sum(r[,j])     
+    }    
+  p_j = colSums(r)/n    
+  count = count + 1  
+  }
+  
+  cluster = which(r == apply(r, 1, max), arr.ind = T)   
+  cluster = cluster[order(cluster[, 1]), ] 
+  
+  # return mu, covlist, p and cluster
+  return(list(mu = mu, 
+              covlist = covlist, 
+              p_j = p_j, 
+              cluster = cluster)) 
+}
+
+```
+
+
+```{r}
+em_dat = res %>% 
+  dplyr::select(-country) 
+
+## res for dat
+set.seed(666)
+res2 = EM(em_dat,2)
+res3=res2$mu %>% 
+  as.data.frame()
+res3
+
+# clusters
+set.seed(666)
+clusters = kmeans(em_dat,2)
+clusternumbers = as.factor(clusters$cluster)
+
+# est_mean
+a_mean = mean(res$a_value)
+a_sd = sd(res$a_value)
+b_mean = mean(res$b_value)
+b_sd = sd(res$b_value)
+c_mean = mean(res$c_value)
+c_sd = sd(res$c_value)
+em_mean = res3 %>% 
+  mutate(
+    a_value = a_value*a_sd+a_mean,
+    b_value = b_value*b_sd+b_mean,
+    c_value = c_value*c_sd+c_mean,
+  ) 
+
+a_mean
+b_mean
+c_mean
+em_mean
+```
+
+

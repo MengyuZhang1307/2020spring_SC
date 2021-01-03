@@ -1,0 +1,171 @@
+---
+title: "L2"
+author: "Mengyu Zhang"
+date: "1/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1  Discret distributions
+
+A natural way to generate random variable that follows binomial distribution would thus be to simulate n Bernoulli trials.
+```{r}
+easybinom <- function(n = 10, p = 0.5)
+  return(sum(runif(n) < p))
+```
+
+A similar strategy can be taken to generate several binomials:
+
+```{r}
+mybinom <- function (num, n = 10, p = 0.5) {
+  umat <- matrix(runif(n * num), nrow = num)
+  # Each row consists of n Bernoulli trials
+  res <- umat < p
+  # results of Bernoulli trials
+  # (success = TRUE, failure = FALSE)#
+  return(as.vector(res %*% rep(1, n)))
+  # count the number of TRUEs in each row
+}
+
+mybinom(num = 20)
+```
+
+First, we need a function to generate the data:
+```{r}
+simdat <- function(n, p) {
+  usenorm <- runif(n) > p
+  # Probability 1-p of NOT being contaminated
+  return(usenorm * rnorm(n) + (1 - usenorm) * rt(n, df=2))
+  }
+```
+
+```{r}
+compare <- function(n, p, N=10000) {
+  SSEmean <- SSEmedian <- 0                    # Initialize
+  for(i in 1:N){
+    dat <- simdat(n, p)
+    SSEmean <- SSEmean + mean(dat)^2
+    SSEmedian <- SSEmedian + median(dat)^2
+  }
+  return(list(n=n, p=p, MSEmean = SSEmean / N,MSEmedian = SSEmedian / N))
+  }
+```
+
+Now thatcompareis defined, we can study the relative performanceof the two estimators as we vary n and/or p.
+
+```{r}
+pvec <- seq(0, 0.3, by=0.025)
+res <- NULL
+for(i in 1:length(pvec))
+  res <- rbind(res, as.numeric(compare(20, pvec[i], N=5000)))
+res <- data.frame(res)
+names(res) <- c("n", "p", "MSEmean", "MSEmedian")
+print(res)
+```
+
+To plot the results, we could use something like this:
+
+```{r}
+pdf(file="compareresults.pdf", height=5, width=5)
+plot(res$p, res$MSEmean, type="l", xlab="p", ylab="MSE",ylim=c(0,max(res$MSEmean)))
+lines(res$p, res$MSEmedian,lty=2)
+graphics.off()
+```
+
+## 2  Monte Carlo Integration
+```{r}
+N =10000
+u = runif(N)
+y = sum((exp(u) - 1)/(exp(1)-1))/N
+```
+
+example 2.2
+```{r}
+gfun<-function(x) exp(-x)/({1+x^2})
+mfun<-function(x) exp(-0.5)/({1+x^2})
+set.seed(123)
+uran<-runif(10000)
+ga<-gfun(uran)
+ma<-mfun(uran)
+```
+
+
+```{r}
+# estimates
+theta1<-mean(ga)
+hha<-{exp(-0.5)}*pi/4 +(ga-ma)
+theta2<-mean(hha)
+c(var(ga), var(hha))
+# efficiency improvement
+(var(ga)-var(hha))/var(ga)
+```
+
+```{r}
+# estimates
+theta1<-mean(ga)
+beta = lm(ga~ma)$coef[2]
+hha2<- beta*(exp(-0.5))*pi/4 +(ga-beta*ma)
+theta3<-mean(hha2)
+c(var(ga), var(hha), var(hha2))
+# efficiency improvement
+(var(ga)-var(hha))/var(ga)
+(var(ga)-var(hha2))/var(ga)
+```
+excercise 2.2
+
+method 1
+```{r}
+gfun<-function(x) x/(2 + x ^ (1/4))
+mfun<-function(x) x/2
+set.seed(123)
+uran<-runif(10000, 0, 10)
+ga<-gfun(uran)
+ma<-mfun(uran)
+
+theta1<- mean(ga*10)
+hha <- 2.5*10 + (ga-ma)*10
+theta2 <- mean(hha)
+c(var(ga*10), var(hha))
+(var(ga*10)-var(hha))/var(ga*10)
+```
+
+
+```{r}
+theta1 <- mean(ga*10)
+beta <- lm(ga~ma)$coef[2]
+hha2 <- beta*2.5*10 + (ga-beta*ma)*10
+theta3 <- mean(hha2)
+c(var(ga*10), var(hha), var(hha2))
+(var(ga*10)-var(hha))/var(ga*10)
+(var(ga*10)-var(hha2))/var(ga*10)
+```
+method 2
+
+```{r}
+gfun<-function(x) x/(2 + x ^ (1/4))
+mfun<-function(x) x^(3/4)
+set.seed(123)
+uran<-runif(10000, 0, 10)
+ga<-gfun(uran)
+ma<-mfun(uran)
+
+theta1<- mean(ga*10)
+hha <- 4/7*10^(7/4) + (ga-ma)*10
+theta2 <- mean(hha)
+c(var(ga*10), var(hha))
+(var(ga*10)-var(hha))/var(ga*10)
+```
+
+
+```{r}
+theta1 <- mean(ga*10)
+beta <- lm(ga~ma)$coef[2]
+hha2 <- beta*4/7*10^(7/4) + (ga-beta*ma)*10
+theta3 <- mean(hha2)
+c(var(ga*10), var(hha), var(hha2))
+(var(ga*10)-var(hha))/var(ga*10)
+(var(ga*10)-var(hha2))/var(ga*10)
+```

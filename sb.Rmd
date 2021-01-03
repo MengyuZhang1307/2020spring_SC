@@ -1,0 +1,86 @@
+---
+title: "sb"
+author: "Mengyu Zhang / mz2777"
+date: "4/23/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(foreach)
+library(parallel) 
+library(doParallel)
+```
+
+```{r}
+blue <- c(4,69,87,35,39,79,31,79,65,95,68,62,70,80,84,79,66,75,59,77,36,86,39,85,74,72,69,85,85,72)
+red <-c(62,80,82,83,0,81,28,69,48,90,63,77,0,55,83,85,54,72,58,68,88,83,78,30,58,45,78,64,87,65)
+acui<-data.frame(str=c(rep(0,20),rep(1,10)),red,blue)
+```
+
+
+$$
+T_{\mathrm{wgt}}=\sqrt{\gamma} \frac{\bar{X}_{0, U}-\bar{X}_{1, U}}{\sqrt{S_{0, U}^{2} / n_{0}+S_{1, U}^{2} / n_{1}}}+\sqrt{1-\gamma} \frac{\bar{D}}{S_{D} / \sqrt{n}}
+$$
+
+```{r}
+# test statistic computation
+teststat = function(x,y,d){
+  x = as.matrix(x)
+  y = as.matrix(y)
+  d = as.matrix(d)
+return(sqrt(20/40) * (mean(x) - mean(y))/(sqrt(var(x)/10 + var(y)/10)) + sqrt(1-20/40)*mean(d)/(sqrt(var(d)/20)))
+}
+
+hypo_test <- function(data, nboot=10000){
+  x = data %>% filter(str == 1) %>% dplyr::select(red)
+  y = data %>% filter(str == 1) %>% dplyr::select(blue)  
+  d = data %>% filter(str == 0) %>%  mutate(d = red - blue) %>%  dplyr::select(d)
+  
+  # The mean of the combined 
+  combmean <- mean(c(data[,2],data[,3]))
+  
+  # split data
+  pair_pat = data %>% 
+    filter(str == 0) %>% 
+    mutate(adj_red = red - mean(red) + combmean,
+           adj_blue = blue - mean(blue) + combmean,
+           d = adj_red -adj_blue) %>% 
+    dplyr::select(d)
+
+  
+  red_pat = data %>% 
+    filter(str == 1) %>% 
+    mutate(adj = red - mean(red) + combmean) %>% 
+    dplyr::select(adj)
+  
+  blue_pat = data %>% 
+    filter(str == 1) %>% 
+    mutate(adj = blue - mean(blue) + combmean) %>% 
+    dplyr::select(adj)  
+
+  
+  nCores <- 10  # to set manually
+  registerDoParallel(nCores)
+  teststatvec <- vector()
+  out <- foreach(i = 1:nboot, .combine = c) %dopar% {
+    
+    new_pair = sample(as.matrix(pair_pat), replace = T)
+    new_red = sample(as.matrix(red_pat), replace = T)
+    new_blue = sample(as.matrix(blue_pat), replace = T)
+    
+    teststatvec <- as.matrix(teststat(x=new_red, y=new_blue, d=new_pair))
+    teststatvec
+  }
+  
+  return(list(bootpval = sum(rep(teststat(x,y,d),nboot) < out)/nboot, t = out))
+}
+data = acui
+
+set.seed(123)
+res = hypo_test(acui) #### results are different
+res$bootpval
+hist(res$t)
+```
+

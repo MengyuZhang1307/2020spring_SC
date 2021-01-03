@@ -1,0 +1,461 @@
+---
+title: "Final Report"
+author: "Mengyu Zhang"
+date: "5/12/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(truncnorm)
+library(mvtnorm)
+library(matrixcalc)
+library(glmnet)
+```
+
+## Problem 1
+
+### Question 1
+
+
+```{r }
+# data cleaning
+shift <- function(x, n=1){
+  c(x[-(seq(n))], rep(NA, n))
+}
+data = read.csv("./hurrican356.csv")
+data1 = read.csv("hurrican356.csv") %>% 
+  janitor::clean_names() %>% 
+  filter(nature != "NR") %>% 
+  mutate(year = season,
+         date_hour = time) %>% 
+  separate(date_hour, into = c("date", "hour"), sep = " ") %>% 
+  filter(hour == "00:00:00)" | hour == "06:00:00)" | hour == "12:00:00)" | hour == "18:00:00)") %>% 
+  mutate(hour = str_replace(hour, ":00:00\\)", ""),
+         hour = as.numeric(hour),
+         date = str_replace(date, "\\(", ""),
+         date = yday(date),
+         nature = as.numeric(as.factor(nature))) %>% 
+  group_by(id) %>% 
+  mutate(delta1 = c(NA, diff(latitude)),
+         delta2 = c(NA, diff(longitude)),
+         delta3 = c(NA, diff(wind_kt)),
+         latitude_p = shift(latitude),
+         longitude_p = shift(longitude),
+         windkt_p = shift(wind_kt)) %>% 
+  ungroup() %>% 
+  na.omit() %>% 
+  select(id, latitude, longitude, wind_kt, latitude_p, longitude_p, windkt_p, date, year, nature, delta1, delta2, delta3)
+
+#head(data1)
+#summary(data1)
+```
+
+# Then, we randomely select 80% hurricanes and remove `id`. There are 7981 observations in the training dataset.
+
+
+```{r}
+#split the data into train and test
+set.seed(123)
+id = unique(data1$id)
+num_id = length(id)
+train_id = sample(id, 0.8*num_id)
+
+train_data = data1[which(data1$id %in% train_id),] %>% 
+  select(-id)
+```
+
+
+
+```{r}
+# Starting points
+set.seed(111)
+rho = rep(0.8, 3)
+sigma = bayesm::rwishart(3,diag(0.1,3))$IW
+sigma = c(sigma[1,], sigma[2,c(2,3)], sigma[3,3])
+beta = rep(0.005,21)
+```
+
+```{r}
+# Density function.
+# for each yi
+logdy = function(obs, beta, rho, sigma){
+  x = c(1,obs[7:12])
+  y = obs[1:3]
+  mu = beta %*% x + rho*obs[1:3]
+  dy = dmvnorm(obs[4:6], mean = mu, sigma = sigma)
+  return(log(dy))
+}
+
+#traintest = train_data[c(1:100),]
+#betatest = rep(0.008,21)
+#apply(traintest, 1, logdy, beta.=betatest)
+
+logdensity = function(data=train_data, beta.=beta, rho.=rho, sigma.=sigma){
+  beta_m = matrix(beta.,3)
+  sigma_m = matrix(c(sigma.[c(1:3)], sigma.[2], sigma.[c(4,5)], sigma.[c(3,5)], sigma.[6]), 3)
+  logdy = apply(data, 1, logdy, beta=beta_m, rho=rho., sigma=sigma_m)
+  logdens = sum(logdy) + log(dmvnorm(beta., rep(0,21), diag(1,21))) + log(dtruncnorm(rho.[1], a=0, b=1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[2], a=0, b=1, mean = 0.5, sd = 0.2)) + log(dtruncnorm(rho.[3], a=0, b=1, mean = 0.5, sd = 0.2)) + log(MCMCpack::diwish(sigma_m, 3, diag(0.1,3))) 
+  return(logdens)
+}
+
+```
+
+```{r}
+# Sampling process
+regularMHstep = function(startpars, niter = 1000, rhoa, betaa, sigmaa){
+  beta_m = matrix(NA, niter, 21)
+  rho_m = matrix(NA, niter, 3)
+  sigma_m = matrix(NA, niter, 6)
+  beta_m[1,] = startpars$beta
+  rho_m[1,] = startpars$rho
+  sigma_m[1,] = startpars$sigma
+  for (i in 2:1000) {   # correlated issue
+    print(str_c("#####################  ", i, "/",niter, "  #####################"))
+    posbeta = beta_m[i-1,] + runif(21,-1,1)*beta_a
+    posrho = rho_m[i-1,] + runif(3,-1,1)*rho_a
+    possigma = sigma_m[i-1,] + runif(6,-1,1)*sigma_a
+    possigma_m = matrix(c(possigma[c(1:3)], possigma[2], possigma[c(4,5)], possigma[c(3,5)], possigma[6]), 3)
+    if (sum(ifelse(posrho<1, 0, 1))==0 & is.positive.definite(possigma_m)) {
+      if (log(runif(1)) < logdensity(beta.=posbeta, rho.=posrho, sigma.=possigma) - logdensity(beta.=beta_m[i-1,], rho.=rho_m[i-1,], sigma.=sigma_m[i-1,])){
+        beta_m[i,] = posbeta
+        rho_m[i,] = posrho
+        sigma_m[i,] = possigma
+        }
+      else{
+        beta_m[i,] = beta_m[i-1,]
+        rho_m[i,] = rho_m[i-1,]
+        sigma_m[i,] = sigma_m[i-1,]
+      }}
+    else{
+      beta_m[i,] = beta_m[i-1,]
+      rho_m[i,] = rho_m[i-1,]
+      sigma_m[i,] = sigma_m[i-1,]
+      }
+  }
+  for (i in 1001:niter) {   # correlated issue
+    print(str_c("#####################  ", i, "/",niter, "  #####################"))
+    posbeta = beta_m[i-1,] + runif(21,-1,1)*beta_a/5
+    posrho = rho_m[i-1,] + runif(3,-1,1)*rho_a/5
+    possigma = sigma_m[i-1,] + runif(6,-1,1)*sigma_a/5
+    possigma_m = matrix(c(possigma[c(1:3)], possigma[2], possigma[c(4,5)], possigma[c(3,5)], possigma[6]), 3)
+    if (sum(ifelse(posrho<1, 0, 1))==0 & is.positive.definite(possigma_m)) {
+      if (log(runif(1)) < logdensity(beta.=posbeta, rho.=posrho, sigma.=possigma) - logdensity(beta.=beta_m[i-1,], rho.=rho_m[i-1,], sigma.=sigma_m[i-1,])){
+        beta_m[i,] = posbeta
+        rho_m[i,] = posrho
+        sigma_m[i,] = possigma
+        }
+      else{
+        beta_m[i,] = beta_m[i-1,]
+        rho_m[i,] = rho_m[i-1,]
+        sigma_m[i,] = sigma_m[i-1,]
+      }}
+    else{
+      beta_m[i,] = beta_m[i-1,]
+      rho_m[i,] = rho_m[i-1,]
+      sigma_m[i,] = sigma_m[i-1,]
+      }
+  }
+  return(list(MHbeta = beta_m, MHrho = rho_m, MHsigma = sigma_m))
+}
+```
+
+```{r}
+# starting points of parameters
+startpars = list(rho = rho, beta = beta, sigma = sigma)
+rho_a = c(0.005,0.005,0.01)
+sigma_a = rep(0.5, 6)
+beta_a = c(rep(0.01, 3), rep(0.0005, 2), 0.001, rep(0.0001, 3), rep(0.005,6), 0.01, rep(0.005, 5))
+```
+
+```{r, eval=FALSE}
+set.seed(123)
+MHresults = regularMHstep(startpars, niter = 2000, rhoa = rho_a, betaa = beta_a, sigmaa = sigma_a)
+
+save(MHresults, file="result_2000_5.RData")
+```
+
+
+```{r, eval=FALSE}
+# check accept rate
+uni_beta = rep(NA,21)
+for (i in 1:21){
+  uni_beta[i] = length(unique(MHresults$MHbeta[1:1000,i]))
+}
+uni_beta
+
+uni_sigma = rep(NA,6) 
+for (i in 1:6) {
+  uni_sigma[i] = length(unique(MHresults$MHsigma[1:1000,i]))
+}
+uni_sigma
+
+uni_rho = rep(NA,3)
+for (i in 1:3) {
+  uni_rho[i] = length(unique(MHresults$MHrho[1:1000,i]))
+}
+uni_rho
+```
+
+```{r, eval=FALSE}
+# print chain plots
+niter = 2000
+beta_results = as.data.frame(MHresults$MHbeta) %>% 
+  mutate(x = 1:niter) %>% 
+  gather(key = beta, value = value, V1:V21) %>% 
+  mutate(beta = str_replace(beta, "V", ""))
+beta_plot = ggplot(beta_results, aes(x = x, y = value, color = beta)) +
+  geom_line()
+beta_plot
+ 
+rho_results = as.data.frame(MHresults$MHrho) %>% 
+  mutate(x = 1:niter) %>% 
+  gather(key = rho, value = value, V1:V3) 
+rho_plot = ggplot(rho_results, aes(x = x, y = value, color = rho)) +
+  geom_line()
+rho_plot
+
+sigma_results = as.data.frame(MHresults$MHsigma) %>% 
+  mutate(x = 1:niter) %>% 
+  gather(key = sigma, value = value, V1:V6) 
+sigma_plot = ggplot(sigma_results, aes(x = x, y = value, color = sigma)) +
+  geom_line()
+sigma_plot
+```
+
+The chain plots of parameters are shown below.
+
+```{r}
+knitr::include_graphics("./beta_plot1000.jpeg")
+knitr::include_graphics("./rho_plot1000.jpeg")
+knitr::include_graphics("./sigma_plot1000.jpeg")
+```
+
+```{r}
+hat_sigmas <- MHresults$MHsigma
+hat_rhos <- MHresults$MHrho
+hat_betas <- MHresults$MHbeta
+
+hatsigma <- as.matrix(hat_sigmas[1500:nrow(hat_sigmas),])
+hatrho <- as.matrix(hat_rhos[1500:nrow(hat_rhos),])
+hatbeta <- as.matrix(hat_betas[1500:nrow(hat_betas),])
+
+hat_sigma <- apply(hatsigma,2, mean)
+hat_rho <- apply(hatrho,2,mean)
+hat_beta <- apply(hatbeta,2,mean)
+
+hat_sigmam <- matrix(c(hat_sigma[c(1:3)], hat_sigma[2], hat_sigma[c(4,5)], hat_sigma[c(3,5)], hat_sigma[6]), 3)
+hat_betam <- matrix(hat_beta,3)
+
+hat_sigmam 
+hat_betam
+hat_rho
+
+ci_sigma = apply(hatsigma, 2, quantile, probs = c(0.025, 0.975))
+ci_rho = apply(hatrho, 2, quantile, probs = c(0.025, 0.975))
+ci_beta = apply(hatbeta, 2, quantile, probs = c(0.025, 0.975))
+
+rbind(hat_sigma, ci_sigma)
+
+rbind(hat_rho, ci_rho)
+
+rbind(hat_beta, ci_beta)
+
+```
+
+
+```{r}
+test_id = setdiff(id,train_id)
+test1 = data1[which(data1$id %in% test_id),]
+test_ls = test1 %>% group_split(id)
+
+# for each yi
+predy = function(obs){
+  y <- NULL
+  for (i in 1:2){
+    temp = obs[i,2:4]
+    y = rbind(y, temp)
+  }
+  
+  for (i in 3:nrow(obs)){
+    d = y[i-1,]-y[i-2,]
+    #x = c(1, as.matrix(obs[i,8:10]),as.matrix(d))
+    x = c(1, as.matrix(obs[i,8:13]))
+    #mu = t(hat_betam %*% x) + hat_rho * y[i-1,]
+    mu = t(hat_betam %*% x) + hat_rho * as.matrix(obs[i-1,2:4])
+    epsilon = rmvnorm(1, mean = rep(0,3), sigma = hat_sigmam)
+    y[i,] = mu + epsilon
+  }
+  err_latitude = mean(as.matrix((y[,1] - obs[,2])^2))
+  err_longitude = mean(as.matrix((y[,2] - obs[,3])^2))
+  err_wk = mean(as.matrix((y[,3] - obs[,4])^2))
+  
+  return(list(predy = y, err = cbind(err_latitude, err_longitude, err_wk)))
+}
+
+pred_results = map(test_ls, predy)
+```
+
+```{r}
+y <- NULL
+for (i in 1:length(pred_results)) {
+  y = rbind(y, pred_results[[i]]$predy)
+}
+
+test_ord = test1 %>% arrange(id)
+
+dt1 <- cbind(test_ord,y) %>% 
+  janitor::clean_names() %>% 
+  select(-latitude_p, -longitude_p, -windkt_p, -date,-year,-nature,-delta1,-delta2,-delta3)
+
+
+
+##### mse
+mse <- NULL
+for (i in 1:length(pred_results)) {
+  mse = rbind(mse, pred_results[[i]]$err)
+}
+
+test_ord = test1 %>% arrange(id)
+dt2 <- data.frame(mse) %>% 
+  mutate(id = as.character(unique(test_ord$id))) %>% 
+  select(id, everything())
+```
+
+```{r}
+map = ggplot(dt1, aes(x = longitude_2, y = latitude_2, group = id)) + 
+  geom_polygon(data = map_data("world"), 
+               aes(x = long, y = lat, group = group), 
+               fill = "gray25", colour = "gray10", size = 0.2) + 
+  geom_path(data = dt1, aes(group = id, colour = wind_kt_2), size = 0.5) + 
+  xlim(-138, -20) + ylim(3, 55) + 
+  labs(x = "", y = "", colour = "Wind \n(knots)", title="Map of Prediction") + 
+  theme(panel.background = element_rect(fill = "gray10", colour = "gray30"),
+        axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+map
+
+map1 = ggplot(dt1, aes(x = longitude, y = latitude, group = id)) + 
+  geom_polygon(data = map_data("world"), 
+               aes(x = long, y = lat, group = group), 
+               fill = "gray25", colour = "gray10", size = 0.2) + 
+  geom_path(data = dt1, aes(group = id, colour = wind_kt), size = 0.5) + 
+  xlim(-138, -20) + ylim(3, 55) + 
+  labs(x = "", y = "", colour = "Wind \n(knots)",title="Map of Real") + 
+  theme(panel.background = element_rect(fill = "gray10", colour = "gray30"),
+        axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+map1
+
+
+```
+```{r}
+
+dt11 = dt1 %>% 
+  filter(id == unique(dt1$id)[10]) 
+
+# CHANTAL.1995
+CHANTAL.1995.pre = dt11 %>% 
+  ggplot(aes(x = longitude_2, y = latitude_2, group = id)) + 
+  geom_polygon(data = map_data("world"), 
+               aes(x = long, y = lat, group = group), 
+               fill = "gray25", colour = "gray10", size = 0.2) + 
+  geom_path(aes(group = id, colour = wind_kt_2), size = 0.5) + 
+  xlim(-138, -20) + ylim(3, 55) + 
+  labs(x = "", y = "", colour = "Wind \n(knots)", title="Map of Prediction (CHANTAL.1995)") + 
+  theme(panel.background = element_rect(fill = "gray10", colour = "gray30"),
+        axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+CHANTAL.1995.pre
+
+CHANTAL.1995.real = dt11 %>% 
+  ggplot(aes(x = longitude, y = latitude, group = id)) + 
+  geom_polygon(data = map_data("world"), 
+               aes(x = long, y = lat, group = group), 
+               fill = "gray25", colour = "gray10", size = 0.2) + 
+  geom_path(aes(group = id, colour = wind_kt), size = 0.5) + 
+  xlim(-138, -20) + ylim(3, 55) + 
+  labs(x = "", y = "", colour = "Wind \n(knots)", title="Map of Real (CHANTAL.1995)") + 
+  theme(panel.background = element_rect(fill = "gray10", colour = "gray30"),
+        axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+CHANTAL.1995.real
+```
+
+```{r}
+ggsave("beta_plot1000.jpeg", beta_plot, width = 8, height = 4)
+ggsave("rho_plot1000.jpeg", rho_plot, width = 8, height = 4)
+ggsave("sigma_plot1000.jpeg", sigma_plot, width = 8, height = 4)
+
+ggsave("beta_plot2000.jpeg", beta_plot, width = 8, height = 4)
+ggsave("rho_plot2000.jpeg", rho_plot, width = 8, height = 4)
+ggsave("sigma_plot2000.jpeg", sigma_plot, width = 8, height = 4)
+
+
+save(dt1, file="pred_res.RData")
+save(dt2, file="err.RData")
+
+ggsave("map_pred_2000.jpeg", map, width = 8, height = 4)
+ggsave("map_real_2000.jpeg", map1, width = 8, height = 4)
+ggsave("CHANTAL_1995_pre_2000.jpeg", CHANTAL.1995.pre, width = 8, height = 4)
+ggsave("CHANTAL_1995_real_2000.jpeg", CHANTAL.1995.real, width = 8, height = 4)
+
+#save(MHresults, file="result_2000.RData")
+
+```
+
+```{r}
+dt22 = dt2 %>% 
+  filter(id == unique(dt1$id)[10]) 
+
+
+```
+
+```{r}
+err_latitude_hist = dt2 %>% ggplot(aes(err_latitude)) + 
+  geom_histogram(breaks = seq(0,3, by = 0.2), 
+                 col="black", 
+                 fill="skyblue3", 
+                 alpha = .6) +
+  labs(title="Histogram for Latitude MSE among 71 hurricanes", x="MSE", y="Count")+
+  theme_bw()
+err_latitude_hist
+
+err_longitude_hist = dt2 %>% ggplot(aes(err_longitude)) + 
+  geom_histogram(breaks = seq(0,30, by = 2), 
+                 col="black", 
+                 fill="skyblue3", 
+                 alpha = .6) +
+  labs(title="Histogram for Longitude MSE among 71 hurricanes", x="MSE", y="Count")+
+  theme_bw()
+err_longitude_hist
+
+err_wk_hist = dt2 %>% ggplot(aes(err_wk)) + 
+  geom_histogram(breaks = seq(0,150, by = 10), 
+                 col="black", 
+                 fill="skyblue3", 
+                 alpha = .6) +
+  labs(title="Histogram for Maximum Wind Speed MSE among 71 hurricanes", x="MSE", y="Count")+
+  theme_bw()
+err_wk_hist
+
+
+ggsave("err_latitude_hist.jpeg", err_latitude_hist, width = 6, height = 4)
+
+ggsave("err_longitude_hist.jpeg", err_longitude_hist, width = 6, height = 4)
+
+ggsave("err_wk_hist.jpeg", err_wk_hist, width = 6, height = 4)
+```
+

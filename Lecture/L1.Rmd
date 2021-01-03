@@ -1,0 +1,101 @@
+---
+title: "L1_monte-carlo"
+author: "Mengyu Zhang"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## LCG
+
+```{r}
+lcg <- function(a, c, m, seed, nnum = 100) {
+    ans <- rep(0, nnum)  # Initialize the array
+    ans[1] <- (a * seed + c) %% m
+    for(i in 2:nnum)
+      ans[i] <- (a * ans[i - 1] + c) %% m
+    return(ans)
+}
+rannums <- lcg(a = 9, c = 5, m = 16, seed = 8, nnum = 20)
+
+rannums <- lcg(a = 7, c = 1, m = 10, seed = 2, nnum = 20)
+rannums
+rannums <- lcg(a = 7, c = 1, m = 10, seed = 4, nnum = 20)
+rannums
+```
+
+
+```{r}
+
+
+set.seed(1000)
+U = runif(1000)
+X = -log(1-U)
+hist(X, prob = T)
+xx = seq(min(X), max(X), length = 1000)
+yy = exp(-xx)
+lines(xx, yy)
+
+
+# 3
+accrej <- function(fdens, gdens, M, x)
+  return(x[runif(length(x)) <= fdens(x) / (M * gdens(x))])
+
+unif02dens = function(x)
+  return(0.5 * (x >= 0 & x <= 2))
+
+witchshatdens = function(x)
+  return(x * (x >= 0 & x <=1) + (2 - x) * (x > 1 & x <= 2))
+
+set.seed(123456)
+x1 = runif(1000) * 2
+y1 = accrej(witchshatdens, unif02dens, 2, x1)
+
+length(y1)/1000
+
+hist(x1)
+hist(y1)
+
+
+set.seed(123456)
+normdens = function(x)
+  return(exp(-(x-1)^2/2)/sqrt(2*pi) * (x >= 0 & x <= 2))
+x = rnorm(1000,1,1)
+y = accrej(witchshatdens, normdens, 2.5, x)
+
+length(y)/1000
+
+
+hist(x, prob = T)
+hist(y, prob = T)
+xx = seq(min(x), max(x), length = 1000)
+yy = xx * (xx >= 0 & xx <=1) + (2 - xx) * (xx > 1 & xx <= 2)
+lines(xx, yy)
+
+
+## with in 0~2
+
+mysamp <- function(n, m, s, lwr, upr, nnorm) {
+  samp <- rnorm(nnorm, m, s)
+  samp <- samp[samp >= lwr & samp <= upr]
+  if (length(samp) >= n) {
+    return(sample(samp, n))
+  }  
+  stop(simpleError("Not enough values to sample from. Try increasing nnorm."))
+}
+
+normdens = function(x)
+  return(dnorm(x, 1, 1))
+
+set.seed(123456)
+xnew = mysamp(n=1000, m=1, s=1, lwr=0, upr=2, nnorm=10000)
+
+ynew = accrej(witchshatdens, normdens, 2.5, xnew)
+
+length(ynew)/1000
+
+```
+

@@ -1,0 +1,248 @@
+---
+title: "proj3"
+author: "Zongchao Liu"
+date: "4/20/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(pracma)
+```
+
+
+# Import and clean data
+
+```{r,message=FALSE}
+data = read_csv("./covid19-1.csv") %>% janitor::clean_names()
+#skimr::skim(data)
+
+#看一眼国家的数据
+names(data)
+length(unique(data$country_region)) #169
+data %>%
+  group_by(country_region) %>%
+  summarise(n_cases = max(confirmed_cases)) %>% #confirmed_cases = 累计cases
+  filter(n_cases != 0) %>%
+  arrange(desc(n_cases)) %>% #nrow(.) = 145
+  .[1:10,] %>%
+  ggplot(aes(x = reorder(country_region,-n_cases), y = log(n_cases),fill = country_region)) +
+  geom_col() +
+  theme_bw() +
+  ggsci::scale_fill_d3() +
+  labs(title = "Top 10 Countries With the Most Cases") +
+  theme(plot.title = element_text(hjust = .5))#  145个国家有cases,top 10
+
+#有cases的国家汇总
+data_havecases = data %>%
+  group_by(country_region) %>%
+  summarise(n_cases = max(confirmed_cases)) %>% #confirmed_cases = 累计cases
+  filter(n_cases != 0)
+
+country = unique(data_havecases$country_region) # 挑出来有cases 的国家
+
+#整理日期数据，准备拿来优化
+data = data %>% 
+  mutate(date = str_c(date,"20"),
+         date = as.Date.character(date,
+                                  format = "%m/%d/%Y")) %>%
+  filter(country_region %in% country) #这个data 改过日期，剔除了没有cases的国家
+
+
+#############################################################
+# 定义一个函数：先选定一个国家，提取数据，然后把日期转换为天数
+date_to_day = function(df,country_name){
+  df_country = df %>%
+    filter(country_region == country_name) %>% #选出这个地区的数据
+    group_by(date) %>% 
+    summarise(cases = sum(confirmed_cases)) %>% # 按日期求累积cases的和，得出每天整个国家的累积cases
+    arrange(date) #按日期排序
+  
+  start_day = which(df_country$cases!=0)[1] # 第一次出现感染的日期对应的行数
+  start_date = df_country$date[start_day] # 第一次感染的日期
+  df_country = df_country[start_day:nrow(df_country),] %>%
+    mutate(days_since_spread = c(1:nrow(.))) # 创建logistic curve 里的t
+  
+  return(list(start_date = start_date,
+              df_country = df_country,
+              country.name = country_name))  
+} # 返回spread date & 从那一天起感染的数据 & 国家名（用df_country来优化）
+#############################################################
+
+
+# example
+t = date_to_day(data,"US")
+t$start_date
+t$df_country
+t$country.name
+
+# 打印10个国家的数据
+for (region in country[1:10]) {
+  result = date_to_day(data,region)
+  #print(result$df_country)
+}
+
+
+```
+
+# 1. Optimization
+
+Develop an optmization algorithm to fit a logisitc curve to each region, and find a way to visualize your fitted curves effectively;   What you learn from your fitted models? e.g. how many regions have passed the midpoint? how many regions are approaching to the end of the virus speading; Which regions have faster growth rates and which regions have more "flat" growth? 
+
+
+$$f(t) = \frac{a}{ 1+ exp\{-b(t-c)\}},$$
+```{r}
+i = 0
+cov_data = list()
+for (region in country) {
+  i = i + 1
+  temp = date_to_day(data,region)
+  cov_data[[i]] = temp
+}
+
+cov_data[[1]]$df_country %>% 
+  ggplot(aes(days_since_spread, cases)) + 
+  geom_point()
+```
+
+
+```{r}
+log_curv <- function(x, beta){
+  a = beta[1]
+  b = beta[2]
+  c = beta[3]  
+  return(a/(1 + exp(-b * (x - c))))
+}
+
+# data = cov_data[[1]]
+
+loss_func <- function(x, y, beta){
+  return(sum((y - log_curv(x, beta))^2)/2)
+}
+```
+
+
+```{r}
+
+# objective, gradient and hessian
+logisticstuff <- function(data, beta) {
+  a = beta[1]
+  b = beta[2]
+  c = beta[3]  
+  x = data$df_country$days_since_spread
+  y = data$df_country$cases
+  
+  # objective function value
+  obj_val = loss_func(x, y, beta)
+
+  grad_a = sum(-(y - a / (exp(-b*(x - c)) + 1))/(exp(-b*(x - c)) + 1))
+
+  grad_b = sum(-(a*(x - c) * exp(-b*(x - c))*(y - a/(exp(-b*(x - c)) + 1)))/(exp(-b*(x - c)) + 1)^2)
+ 
+  grad_c = sum((a*b*exp(- b*(x - c))*(y - a / (exp(-b*(x - c)) + 1))) / (exp(-b*(x - c)) + 1)^2)
+
+  # gradient at given betas
+  grad =  c(grad_a, grad_b, grad_c)
+  
+  return(list(objvalue = obj_val, grad = grad))
+}
+
+# optimal beta
+logitcurve = function(data, func, start, rho, tol = 1e-10, maxiter = 2000) {
+  i <- 0
+  cur <- start
+  stuff <- func(data, cur)
+  res <- c(0, stuff$objvalue, cur)
+  prevobj <- -Inf
+  prev = NULL
+  
+   while(i < maxiter && abs(stuff$objvalue - prevobj) > tol){
+    i <- i + 1
+    prevobj <- stuff$objvalue
+    prev <- cur
+    prevstuff <- stuff
+    alpha <- 1
+    cur <- prev - alpha * stuff$grad
+    stuff <- func(data, cur) 
+    while (stuff$objvalue > (prevobj - 0.5 * alpha * prevstuff$grad %*% prevstuff$grad)) { #最速下降法
+      alpha <- rho * alpha
+      cur <- prev - alpha * prevstuff$grad
+      stuff <- func(data, cur) 
+    }
+    res <- rbind(res, c(i, stuff$objvalue, cur))
+    }
+  return(res)
+}
+
+
+```
+
+```{r}
+
+data_us = date_to_day(data,"China")
+data_1 = cov_data[[1]]
+max(data$df_country$cases)
+
+con_1_10  <- list()
+i = 0
+for (i in 1:5) {
+  temp = logitcurve(cov_data[[i]], func = logisticstuff, rho = 0.5, start = c(1,2,3), tol = 1e-10, maxiter = 20000)
+  con_1_10[[i]] = temp
+}
+  
+  
+res_1 = logitcurve(data, func = logisticstuff, rho = 0.5, start = c(10,2,15), tol = 1e-10, maxiter = 20000)
+res_us = logitcurve(data_us, func = logisticstuff, rho = 0.5, start = c(1,2,3), tol = 1e-10, maxiter = 20000)
+plot(res_1[,2])
+stuff$grad
+a = res_us[9,3]
+b = res_us[9,4]
+c = res_us[9,5]
+beta = c(a,b,c)
+
+pred = log_curv(c(1:30),beta)
+plot(pred,type="l")
+points(data_us$df_country$cases)
+```
+
+# 三点法
+
+```{r}
+data = cov_data[[1]]
+
+three_pts <- funciton(data){
+  
+  x = data$df_country$days_since_spread
+  y = data$df_country$cases
+  
+  t = fivenum(x)[c(1,3,5)]
+  N = y[t]
+  
+    
+  K = (2*N[1]*N[2]*N[3]-N[2]^2*(N[1]+N[3]))/(N[1]*N[3]-N[2]^2)
+  
+
+  
+  N = c(y[t[1]], y[t[2]], y[t[2]+1], y[t[3]])
+  
+  K = (N[1]*N[4]*(N[2]+N[3])-N[2]*N[3]*(N[1]+N[4]))/(N[1]*N[4]-N[2]*N[3])
+  
+}
+```
+
+
+
+```{r}
+
+
+nls_data = cov_data[[1]]$df_country
+nls_res <- nls(cases ~ SSlogis(log(conc), Asym, xmid, scal),
+                 data = nls_data,
+                 start = list(a = 3, b = 1, c = 1))
+
+pop.mod1 <- nls(population ~ theta1/(1+exp(-(theta2+theta3*year))),start=list(theta1 = 400, theta2 = -49, theta3 = 0.025), data=USPop, trace=T)
+summary(pop.mod)
+```
+
+

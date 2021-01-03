@@ -1,0 +1,154 @@
+---
+title: "new"
+author: "Mengyu Zhang / mz2777"
+date: "3/3/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+breast_cancer <- read_csv("breast-cancer.csv")[,-33]
+
+cancer = breast_cancer %>% 
+  mutate(diagnosis = recode(diagnosis, "M" = 1, "B" = 0))
+x <- scale(sapply(cancer[,3:32], function(x) as.numeric(unlist(x))))
+y <- sapply(cancer[,2], function(x) as.numeric(unlist(x)))
+
+m <- nrow(y)
+X <- cbind(rep(1, m), x)
+
+theta <- rep(0, 31)
+
+```
+
+```{r}
+# define the sigmoid (logsitic) regression
+sigmoid <- function(x){
+  1/(1+exp(-x))
+}
+
+# cost function
+compCost <- function(theta, X, y){
+  
+# X%*%theta in this given example is a 100x1 column vector
+  J <- - sum(y * log(sigmoid(X %*% theta)) + (1 - y)*log(1 - sigmoid(X %*% theta)))
+  
+return(J)
+}
+```
+
+```{r}
+newton <- function(X, y, theta, num_iter){
+  library(numDeriv)
+  library(MASS)
+  J_hist<-vector()
+  # the loop for the iterative process
+  for(i in 1:num_iter){
+    grad <- (t(X) %*% (sigmoid(X %*% theta) - y)) 
+    H <- hessian(compCost, theta, method = "complex", X = X, y = y)
+  # an alternative way to calculate the Hessian's matrix is to use the `jacobian` function
+  # in regarding to grad. Because the Hessian's matrix is the Jacobian matrix of the gradient
+  # (first partial derivative).
+  
+    theta <- theta - ginv(H) %*% grad
+    J_hist[i] <- compCost(theta, X, y)
+  }
+  result <- list(theta, J_hist)
+return(result)
+}
+```
+
+```{r}
+num_iter = 10
+result <- newton(X, y, theta, num_iter)
+theta <- result[[2]]
+print(theta)
+```
+
+## another
+```{r}
+manual_logistic_regression = function(X,y,threshold = 1e-10, max_iter = 100)
+  #A function to find logistic regression coeffiecients 
+  #Takes three inputs: 
+{
+  #A function to return p, given X and beta
+  #We'll need this function in the iterative section
+  calc_p = function(X,beta)
+  {
+    beta = as.vector(beta)
+    return(exp(X%*%beta) / (1+ exp(X%*%beta)))
+  }  
+
+  #### setup bit ####
+
+  #initial guess for beta
+  beta = rep(0,ncol(X))
+
+  #initial value bigger than threshold so that we can enter our while loop 
+  diff = 10000 
+
+  #counter to ensure we're not stuck in an infinite loop
+  iter_count = 0
+  
+  #### iterative bit ####
+  while(diff > threshold ) #tests for convergence
+  {
+    #calculate probabilities using current estimate of beta
+    p = as.vector(calc_p(X,beta))
+    
+    #calculate matrix of weights W
+    W =  diag(p*(1-p)) 
+    
+    #calculate the change in beta
+    beta_change = solve(t(X)%*%W%*%X) %*% t(X)%*%(y - p)
+    
+    #update beta
+    beta = beta + beta_change
+    
+    #calculate how much we changed beta by in this iteration 
+    #if this is less than threshold, we'll break the while loop 
+    diff = sum(beta_change^2)
+    
+    #see if we've hit the maximum number of iterations
+    iter_count = iter_count + 1
+    if(iter_count > max_iter) {
+      stop("This isn't converging, mate.")
+    }
+  }
+  #make it pretty 
+  return(beta)
+}
+```
+
+```{r}
+manual_logistic_regression(X,y)
+```
+```{r}
+set.seed(2016)
+#simulate data 
+#independent variables
+x1 = rnorm(30,3,2) + 0.1*c(1:30)
+x2 = rbinom(30, 1,0.3)
+x3 = rpois(n = 30, lambda = 4)
+x3[16:30] = x3[16:30] - rpois(n = 15, lambda = 2)
+
+#dependent variable 
+y = c(rbinom(5, 1,0.1),rbinom(10, 1,0.25),rbinom(10, 1,0.75),rbinom(5, 1,0.9))
+
+
+x0 = rep(1,30) #bias
+X = cbind(x0,x1,x2,x3)
+```
+
+```{r}
+manual_logistic_regression(X,y)
+
+M1 = glm(y~x1+x2+x3, family = "binomial")
+
+M1$coefficients
+```
+

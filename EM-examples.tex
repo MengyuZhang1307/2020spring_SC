@@ -1,0 +1,668 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Examples of EM algirhtm},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Examples of EM algirhtm}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+
+\begin{document}
+\maketitle
+
+\hypertarget{example-1-guassian-mixture}{%
+\subsection{Example 1, Guassian
+mixture}\label{example-1-guassian-mixture}}
+
+\[X_i \sim \left\{ \begin{array}{ll}
+\textrm{N}(\mu_1, \sigma_1^2) & \textrm{with probability} \,\, 1-p, \\
+\textrm{N}(\mu_2, \sigma_2^2) & \textrm{with probability} \,\, p.
+\end{array} \right.\] The density of \(X_i\) is thus
+\[f(x) = (1-p)f(x, \mu_1, \sigma_1) + p f(x, \mu_2, \sigma_2)\] where
+\(f(x, \mu_1, \sigma_1) = \frac{1}{\sigma}\phi((x-\mu_1)/\sigma_1)\) and
+\(\phi(x)\) is the standard normal density:
+\[\phi(x) = \frac{1}{\sqrt{2\pi}} e^{-x^2/2}.\] Observed likelihood of
+\((x_1,...,x_n)\)
+\[L_{obs}f(x) = \prod_{i=1}^n\left\{(1-p)f(x_i, \mu_1, \sigma_1) + p f(x_i, \mu_2, \sigma_2)\right\} \]
+Suppose there exist another sequence of iid Bernoullis:
+\(Z_i \sim \textrm{Bin}(1,p)\). For each \(i\), if \(Z_i=0\), then
+\(X_i\) is from the N\((\mu_1, \sigma_1^2)\) distribution; if \(Z_i=1\),
+then \(X_i\) is from N\((\mu_2, \sigma_2^2)\). The joint likelihood of
+\((x_i, z_i)\) is \$ \{(1-p)f(x\_i, \mu\_1, \sigma\_2)\}\^{}\{1-z\_i\}
+\{pf(x\_i, \mu\_2, \sigma\_2)\}\^{}\{z\_i\} \$
+
+The complete log-likelihood of \((X_i, Z_i)'s\) is a linear function of
+\(Z_i\)'s \begin{eqnarray*}
+\ell( \mathbf{X}, \mathbf{Z}, \theta ) & =&  \sum_{i=1}^n \left\{Z_i \log p + (1-Z_i)\log(1-p)  
++ 
+Z_i \log f(x_i, \mu_2, \sigma_2) + (1-Z_i) \log f(x_i, \mu_1, \sigma_1)  \right\}
+\end{eqnarray*} where
+\(\theta = (p, \mu_1, \mu_2,\sigma_1^2,\sigma_2^2)\).
+
+\textbf{E-step}
+\(E_Z(\ell( \mathbf{X}, \mathbf{Z}, \theta ) \mid \mathbf{X}, \theta^{(t)})\).
+Replacing \(Z_i\) by \(\delta_i^{(t)}\) \begin{eqnarray*}\label{expZ}
+{\delta_i^{(t)}\widehat{=}E[Z_i|x_i, \theta^{(t)}] = P(Z_i=1\mid x_i,  \theta^{(t)})}
+& =&
+\frac{p^{(t)}f(x_i, \mu_2^{(t)}, \sigma_2^{(t)})}
+{(1-p^{(t)})f(x_i, \mu_1^{(t)}, \sigma_1^{(t)}) + p^{(t)}f(x_i, \mu_2^{(t)}, \sigma_2^{(t)})}.
+\end{eqnarray*}
+
+\textbf{M-step}
+\(\theta^{(t+1)} = \arg\max\ell( \mathbf{X}, \mathbf{\delta}^{(t)}, \theta )\).
+\begin{eqnarray*}
+{p}^{(t+1)} &= &\sum \delta_i^{(t)}/n \\
+{\mu}_1^{(t+1)} &= & \frac{1}{\sum_{i=1}^n (1-\delta^{(t)}_i)} \sum_{i=1}^n (1-\delta^{(t)}_i) x_i;\\
+{\mu}_2^{(t+1)} &= & \frac{1}{\sum_{i=1}^n \delta^{(t)}_i} \sum_{i=1}^n \delta^{(t)}_i x_i;\\
+{\sigma}_1^{2(t+1)} &= & \frac{1}{\sum_{i=1}^n (1-\delta^{(t)}_i)}
+\sum_{i=1}^n \left[(1-\delta^{(t)}_i)(x_i-{\mu}_1^{(t+1)})^2\right].\\
+{\sigma}_2^{2(t+1)} &= & \frac{1}{\sum_{i=1}^n \delta^{(t)}_i}
+\sum_{i=1}^n \left[\delta^{(t)}_i(x_i-{\mu}^{(t+1)}_2)^2\right].
+\end{eqnarray*}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# E-step evaluating conditional means E(Z_i | X_i , pars)}
+\NormalTok{delta <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(X, pars)\{}
+\NormalTok{  phi1 <-}\StringTok{ }\KeywordTok{dnorm}\NormalTok{(X, }\DataTypeTok{mean=}\NormalTok{pars}\OperatorTok{$}\NormalTok{mu1, }\DataTypeTok{sd=}\NormalTok{pars}\OperatorTok{$}\NormalTok{sigma1)}
+\NormalTok{  phi2 <-}\StringTok{ }\KeywordTok{dnorm}\NormalTok{(X, }\DataTypeTok{mean=}\NormalTok{pars}\OperatorTok{$}\NormalTok{mu2, }\DataTypeTok{sd=}\NormalTok{pars}\OperatorTok{$}\NormalTok{sigma2)}
+  \KeywordTok{return}\NormalTok{(pars}\OperatorTok{$}\NormalTok{p }\OperatorTok{*}\StringTok{ }\NormalTok{phi2 }\OperatorTok{/}\StringTok{ }\NormalTok{((}\DecValTok{1} \OperatorTok{-}\StringTok{ }\NormalTok{pars}\OperatorTok{$}\NormalTok{p) }\OperatorTok{*}\StringTok{ }\NormalTok{phi1 }\OperatorTok{+}\StringTok{ }\NormalTok{pars}\OperatorTok{$}\NormalTok{p }\OperatorTok{*}\StringTok{ }\NormalTok{phi2))}
+\NormalTok{\}}
+
+\CommentTok{# M-step - updating the parameters}
+\NormalTok{mles <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(Z, X) \{}
+\NormalTok{  n <-}\StringTok{ }\KeywordTok{length}\NormalTok{(X)}
+\NormalTok{  phat <-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z) }\OperatorTok{/}\StringTok{ }\NormalTok{n}
+\NormalTok{  mu1hat <-}\StringTok{ }\KeywordTok{sum}\NormalTok{((}\DecValTok{1} \OperatorTok{-}\StringTok{ }\NormalTok{Z) }\OperatorTok{*}\StringTok{ }\NormalTok{X) }\OperatorTok{/}\StringTok{ }\NormalTok{(n }\OperatorTok{-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z))}
+\NormalTok{  mu2hat <-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z }\OperatorTok{*}\StringTok{ }\NormalTok{X) }\OperatorTok{/}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z)}
+\NormalTok{  sigmahat1 <-}\StringTok{ }\KeywordTok{sqrt}\NormalTok{(}\KeywordTok{sum}\NormalTok{((}\DecValTok{1} \OperatorTok{-}\StringTok{ }\NormalTok{Z) }\OperatorTok{*}\StringTok{ }\NormalTok{(X }\OperatorTok{-}\StringTok{ }\NormalTok{mu1hat)}\OperatorTok{^}\DecValTok{2}\NormalTok{ ) }\OperatorTok{/}\StringTok{ }\NormalTok{(n }\OperatorTok{-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z)))}
+\NormalTok{  sigmahat2 <-}\StringTok{ }\KeywordTok{sqrt}\NormalTok{(}\KeywordTok{sum}\NormalTok{(Z }\OperatorTok{*}\StringTok{ }\NormalTok{(X }\OperatorTok{-}\StringTok{ }\NormalTok{mu2hat)}\OperatorTok{^}\DecValTok{2}\NormalTok{) }\OperatorTok{/}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z))}
+  \KeywordTok{return}\NormalTok{(}\KeywordTok{list}\NormalTok{(}\DataTypeTok{p=}\NormalTok{phat, }\DataTypeTok{mu1=}\NormalTok{mu1hat, }\DataTypeTok{mu2=}\NormalTok{mu2hat, }\DataTypeTok{sigma1=}\NormalTok{sigmahat1,}\DataTypeTok{sigma2=}\NormalTok{sigmahat2))}
+\NormalTok{\}}
+\NormalTok{EMmix <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(X, start, }\DataTypeTok{nreps=}\DecValTok{10}\NormalTok{) \{}
+\NormalTok{  i <-}\StringTok{ }\DecValTok{0}
+\NormalTok{  Z <-}\StringTok{ }\KeywordTok{delta}\NormalTok{(X, start)}
+\NormalTok{  newpars <-}\StringTok{ }\NormalTok{start}
+\NormalTok{  res <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\KeywordTok{t}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{(newpars)))}
+  \ControlFlowTok{while}\NormalTok{(i }\OperatorTok{<}\StringTok{ }\NormalTok{nreps) \{     }
+  \CommentTok{# This should actually check for convergence}
+\NormalTok{    i <-}\StringTok{ }\NormalTok{i }\OperatorTok{+}\StringTok{ }\DecValTok{1}
+\NormalTok{    newpars <-}\StringTok{ }\KeywordTok{mles}\NormalTok{(Z, X)}
+\NormalTok{    Z <-}\StringTok{ }\KeywordTok{delta}\NormalTok{(X, newpars)}
+\NormalTok{    res <-}\StringTok{ }\KeywordTok{rbind}\NormalTok{(res, }\KeywordTok{c}\NormalTok{(i, }\KeywordTok{t}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{(newpars))))}
+\NormalTok{  \}}
+  \KeywordTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Waiting time between eruptions and the duration of the eruption for the
+Old Faithful geyser in Yellowstone National Park, Wyoming.( 272
+observations on 2 variables)
+
+\emph{eruptions} numeric Eruption time in mins
+
+\emph{waiting} numeric Waiting time to next eruption (in mins)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(datasets)}
+\KeywordTok{data}\NormalTok{(faithful)}
+\KeywordTok{head}\NormalTok{(faithful)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   eruptions waiting
+## 1     3.600      79
+## 2     1.800      54
+## 3     3.333      74
+## 4     2.283      62
+## 5     4.533      85
+## 6     2.883      55
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{hist}\NormalTok{(faithful}\OperatorTok{$}\NormalTok{waiting)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{EM-examples_files/figure-latex/unnamed-chunk-2-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{res=}\KeywordTok{EMmix}\NormalTok{(faithful}\OperatorTok{$}\NormalTok{waiting, }\DataTypeTok{start=}\KeywordTok{list}\NormalTok{(}\DataTypeTok{p=}\FloatTok{0.5}\NormalTok{, }\DataTypeTok{mu1=}\DecValTok{50}\NormalTok{, }\DataTypeTok{mu2=}\DecValTok{80}\NormalTok{, }\DataTypeTok{sigma1=}\DecValTok{15}\NormalTok{, }\DataTypeTok{sigma2=}\DecValTok{15}\NormalTok{), }\DataTypeTok{nreps=}\DecValTok{20}\NormalTok{)}
+\NormalTok{res}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     [,1] [,2]      [,3]     [,4]     [,5]     [,6]    
+## res 0    0.5       50       80       15       15      
+##     1    0.6307318 59.18832 77.75205 11.25962 9.511798
+##     2    0.6233299 57.79941 78.8118  10.26942 8.085988
+##     3    0.6170174 56.58917 79.77796 8.746949 6.709331
+##     4    0.6173725 55.75875 80.27929 7.354872 5.889559
+##     5    0.622173  55.30386 80.36634 6.611671 5.665596
+##     6    0.627412  55.04593 80.31024 6.287799 5.674619
+##     7    0.6313336 54.88948 80.24466 6.123764 5.724151
+##     8    0.6339918 54.79163 80.19484 6.029467 5.768029
+##     9    0.6357493 54.72944 80.16025 5.972129 5.800265
+##     10   0.6369042 54.68949 80.13691 5.936268 5.822627
+##     11   0.6376621 54.66363 80.12136 5.913448 5.83777 
+##     12   0.6381597 54.6468  80.11105 5.898762 5.847902
+##     13   0.6384865 54.63582 80.10424 5.889238 5.854636
+##     14   0.6387013 54.62862 80.09974 5.883031 5.859095
+##     15   0.6388425 54.6239  80.09678 5.878973 5.862041
+##     16   0.6389354 54.6208  80.09483 5.876313 5.863984
+##     17   0.6389964 54.61877 80.09354 5.874568 5.865265
+##     18   0.6390366 54.61743 80.0927  5.873421 5.866109
+##     19   0.6390631 54.61655 80.09214 5.872668 5.866664
+##     20   0.6390805 54.61597 80.09177 5.872172 5.86703
+\end{verbatim}
+
+\hypertarget{example-2-zero-inflated-poisson}{%
+\subsection{Example 2 Zero-inflated
+Poisson}\label{example-2-zero-inflated-poisson}}
+
+The following table shows the number of children of \(N\) widows
+entitled to support from certain pension fund.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(knitr)}
+\NormalTok{n.child =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{0}\OperatorTok{:}\DecValTok{6}\NormalTok{)}
+\NormalTok{n.widows =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{3062}\NormalTok{, }\DecValTok{587}\NormalTok{, }\DecValTok{284}\NormalTok{ ,}\DecValTok{103}\NormalTok{,}\DecValTok{33}\NormalTok{, }\DecValTok{4}\NormalTok{ ,}\DecValTok{2}\NormalTok{ )}
+\NormalTok{xx=}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(}\KeywordTok{rbind}\NormalTok{(n.child,n.widows))}
+\KeywordTok{rownames}\NormalTok{(xx)=}\KeywordTok{c}\NormalTok{(}\StringTok{"Number of Child"}\NormalTok{, }\StringTok{"Number of widows"}\NormalTok{)}
+\KeywordTok{kable}\NormalTok{ (xx, }\DataTypeTok{caption=}\StringTok{""}\NormalTok{)  }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lrrrrrrr@{}}
+\toprule
+& V1 & V2 & V3 & V4 & V5 & V6 & V7\tabularnewline
+\midrule
+\endhead
+Number of Child & 0 & 1 & 2 & 3 & 4 & 5 & 6\tabularnewline
+Number of widows & 3062 & 587 & 284 & 103 & 33 & 4 & 2\tabularnewline
+\bottomrule
+\end{longtable}
+
+Poisson distribution is often used to model count data. But the observed
+data above is not consistent with poison distribution due to the large
+number of windows without kids. One way is to model the data as a
+mixture of two populations. With probability \(\delta\), \(Y=0\), and
+with probability \(1-\delta\), \(Y\sim Poisson (\lambda)\). Construct an
+EM algorithm to estimate the \((\delta, \lambda)\), and implement into
+R.
+
+The observed likelihood of \(Y_i\) is
+\[pI\{Y_i=0\}+(1-p) e^{-\lambda}\frac{\lambda^{Y_i}}{Y_i!}\] Let \(z_i\)
+be the indicator whether \(Y_i\) is from \(0\) state or a Poission
+distribution
+
+\[\mathbf z_i\sim
+\begin{cases}
+1, \mbox{with probability}p \\
+0, \mbox{with probability }1-p\\
+\end{cases}
+\] The joint likelihood function is
+\[\prod_{i=1}^np^{z_i}\left[(1-p)e^{-\lambda}\frac{\lambda^{y_i}}{y_i!}\right]^{1-z_i}\]
+
+The joint log-likehood is
+\[\sum_{i=1}^nz_i\log p +(1-z_i)\left[\log (1-p) -\lambda+y_i\log(\lambda)-\log(y_i!)\right]\]
+
+E-step: \[\widehat z_i^{(t)} = E(z_i|Y_i)= P(z_i=1|Y_i) = \begin{cases}
+\frac{\widehat p^{(t)}}{\widehat p^{(t)}+(1-\widehat p^{(t)})e^{-\widehat\lambda^{(t)}}}, Y_i=0 \\
+0, Y_i>0\\
+\end{cases}\] M-step:
+\[\widehat p^{(t+1)}=\frac{\sum_i \widehat z_i^{(t)}}{n}\] and
+\[\widehat\lambda^{(t+1)} =\frac{\sum_i Y_i (1- \widehat z_i^{(t)})}{\sum_i \widehat z_i^{(t)}}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Y <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\KeywordTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{3062}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{587}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{284}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{3}\NormalTok{,}\DecValTok{103}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{33}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{5}\NormalTok{,}\DecValTok{4}\NormalTok{),}\KeywordTok{rep}\NormalTok{(}\DecValTok{6}\NormalTok{,}\DecValTok{2}\NormalTok{))}
+\NormalTok{n <-}\StringTok{ }\KeywordTok{length}\NormalTok{(Y)}
+\NormalTok{Q <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(Y,delta,lambda)\{}
+\NormalTok{mid <-}\StringTok{ }\OtherTok{NULL}
+\ControlFlowTok{for}\NormalTok{ (ii }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\NormalTok{n)\{}
+\ControlFlowTok{if}\NormalTok{ (Y[[ii]] }\OperatorTok{==}\StringTok{ }\DecValTok{0}\NormalTok{) mid[[ii]] <-}\StringTok{ }\NormalTok{delta }\OperatorTok{/}\StringTok{ }\NormalTok{(delta }\OperatorTok{+}\StringTok{ }\NormalTok{(}\DecValTok{1}\OperatorTok{-}\NormalTok{delta)}\OperatorTok{*}\KeywordTok{exp}\NormalTok{(}\OperatorTok{-}\NormalTok{lambda))}
+\ControlFlowTok{else}\NormalTok{ mid[[ii]] <-}\StringTok{ }\DecValTok{0}
+\NormalTok{\}}
+\KeywordTok{return}\NormalTok{(mid)}
+\NormalTok{\}}
+
+\NormalTok{mles <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(Y,Z)\{}
+\NormalTok{delta <-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Z)}\OperatorTok{/}\NormalTok{n}
+\NormalTok{lambda <-}\StringTok{ }\KeywordTok{sum}\NormalTok{(Y}\OperatorTok{*}\NormalTok{(}\DecValTok{1}\OperatorTok{-}\NormalTok{Z))}\OperatorTok{/}\NormalTok{(n}\OperatorTok{-}\KeywordTok{sum}\NormalTok{(Z))}
+\KeywordTok{return}\NormalTok{(}\KeywordTok{c}\NormalTok{(delta,lambda))}
+\NormalTok{\}}
+\NormalTok{EMmix <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(Y, delta, lambda, }\DataTypeTok{nreps=}\DecValTok{20}\NormalTok{) \{}
+\NormalTok{i <-}\StringTok{ }\DecValTok{0}
+\NormalTok{Z <-}\StringTok{ }\KeywordTok{Q}\NormalTok{(Y, delta, lambda)}
+\DecValTok{18}
+\NormalTok{res <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, delta, lambda)}
+\ControlFlowTok{while}\NormalTok{(i }\OperatorTok{<}\StringTok{ }\NormalTok{nreps) \{}
+\NormalTok{i <-}\StringTok{ }\NormalTok{i }\OperatorTok{+}\StringTok{ }\DecValTok{1}
+\NormalTok{para <-}\StringTok{ }\KeywordTok{mles}\NormalTok{(Y,Z)}
+\NormalTok{Z <-}\StringTok{ }\KeywordTok{Q}\NormalTok{(Y, para[}\DecValTok{1}\NormalTok{], para[}\DecValTok{2}\NormalTok{])}
+\NormalTok{res <-}\StringTok{ }\KeywordTok{rbind}\NormalTok{(res, }\KeywordTok{c}\NormalTok{(i,para[}\DecValTok{1}\NormalTok{],para[}\DecValTok{2}\NormalTok{]))}
+\NormalTok{\}}
+\KeywordTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+\NormalTok{delta <-}\StringTok{ }\FloatTok{0.2}
+\NormalTok{lambda <-}\StringTok{ }\DecValTok{5}
+\KeywordTok{EMmix}\NormalTok{(Y, delta, lambda)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     [,1]      [,2]     [,3]
+## res    0 0.2000000 5.000000
+##        1 0.7316907 1.488987
+##        2 0.6939984 1.305579
+##        3 0.6712037 1.215066
+##        4 0.6560611 1.161570
+##        5 0.6454941 1.126946
+##        6 0.6378957 1.103299
+##        7 0.6323234 1.086578
+##        8 0.6281810 1.074472
+##        9 0.6250715 1.065561
+##       10 0.6227210 1.058922
+##       11 0.6209349 1.053933
+##       12 0.6195725 1.050159
+##       13 0.6185301 1.047289
+##       14 0.6177309 1.045099
+##       15 0.6171171 1.043424
+##       16 0.6166450 1.042139
+##       17 0.6162816 1.041152
+##       18 0.6160017 1.040393
+##       19 0.6157859 1.039809
+##       20 0.6156195 1.039359
+\end{verbatim}
+
+\hypertarget{example-3-lifetime-data-are-often-modeled-as-having-an-exponential-distribution}{%
+\subsection{Example 3 Lifetime data are often modeled as having an
+exponential
+distribution}\label{example-3-lifetime-data-are-often-modeled-as-having-an-exponential-distribution}}
+
+\[f(y;\theta) = \frac{1}{\theta} e^{-y/\theta}, \,\, y \ge 0.\] Suppose
+it is of interest to estimate the mean lifetime \(\theta\) of a
+population of lightbulbs. A first experiment is performed, giving data
+\(X_1, \ldots, X_m\) of lifetimes. A second experiment of \(n\) bulbs is
+performed but in it, all bulbs are observed only once, at some fixed
+time \(t\). For the second experiment, let \(E_i\) be the indicator
+function for the \(i\)th bulb, i.e., \(E_i=1\) if the \(i\)th bulb was
+still burning at time \(t\), otherwise \(E_i=0\).
+
+The observed data from both experiments is thus
+\((X_1, \ldots, X_m, E_1, \ldots, E_n)\) and the unobserved data is
+\(Y_1, \ldots, Y_n\), the actual lifetimes of the bulbs in the second
+experiment. The log-likelihood function for the complete data is
+\begin{equation}\label{loglik}
+\log L(\theta; \mathbf{X}, \mathbf{Y}) = -m\left(\log \theta + \bar{X}/\theta\right) - \sum_{i=1}^n \left( \log \theta +
+Y_i/ \theta\right).
+\end{equation}
+
+The expected value of \(Y_i\) still given the observed data at time
+\(t\) is \begin{equation}\label{EYi}
+\textrm{E}[Y_i | X_1, \ldots, X_m, E_1, \ldots, E_n] = \textrm{E}[Y_i|E_i] = \left\{
+\begin{array}{ll}
+\theta - \frac{te^{-t/\theta}}{1-e^{-t/\theta}}, & E_i=0 \\
+t+\theta, & E_i=1.
+\end{array} \right.
+\end{equation}
+
+Write the specific algorithm to obtain the maximum likelihood estimator
+for \(\theta\) using the EM algorithm, and write an R function to
+execute your algorithm.
+
+\vskip 10pt
+
+The following data is collected from one of such experiments where
+\(n=m=20\) and \(t=8\)
+
+\[\mathbf{Y} = (4.0, 12.8, 2.9, 27.2, 2.9, 3.1, 11.2, 9.0, 8.1, 9.8, 13.7, 8.3, 1.2, 0.9, 8.0, 18.8, 2.6, 22.6, 1.7, 4.0)\]
+\[\mathbf{E}=(1,  0,  0,  0 , 0 , 1,  1,  1,  1,  1,  1,  1, 1, 1, 0, 0, 1, 0, 1, 0)\]
+Please apply your algorithm to this data, and present your results.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# E-step evaluating conditional means E(Zi|Xi)}
+\NormalTok{delta <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(E, theta)}
+\NormalTok{\{  t=}\DecValTok{8}
+\NormalTok{  Ey0 <-}\StringTok{ }\NormalTok{theta}\OperatorTok{-}\NormalTok{t}\OperatorTok{*}\KeywordTok{exp}\NormalTok{(}\OperatorTok{-}\NormalTok{t}\OperatorTok{/}\NormalTok{theta)}\OperatorTok{/}\NormalTok{(}\DecValTok{1}\OperatorTok{-}\KeywordTok{exp}\NormalTok{(}\OperatorTok{-}\NormalTok{t}\OperatorTok{/}\NormalTok{theta))}
+\NormalTok{  Ey1 <-}\StringTok{ }\NormalTok{t}\OperatorTok{+}\NormalTok{theta}
+  \KeywordTok{return}\NormalTok{ ((E}\OperatorTok{==}\DecValTok{0}\NormalTok{)}\OperatorTok{*}\NormalTok{Ey0}\OperatorTok{+}\NormalTok{(E}\OperatorTok{==}\DecValTok{1}\NormalTok{)}\OperatorTok{*}\NormalTok{Ey1)}
+\NormalTok{\}}
+\CommentTok{# M-step updating the parameters}
+\NormalTok{mles <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(delta, X, E)}
+\NormalTok{\{}
+\NormalTok{  m=}\KeywordTok{length}\NormalTok{(X)}
+\NormalTok{  n=}\KeywordTok{length}\NormalTok{(E)}
+\NormalTok{  thetahat <-}\StringTok{ }\DecValTok{1}\OperatorTok{/}\NormalTok{(m}\OperatorTok{+}\NormalTok{n)}\OperatorTok{*}\NormalTok{(}\KeywordTok{sum}\NormalTok{(X)}\OperatorTok{+}\KeywordTok{sum}\NormalTok{(delta))}
+  \KeywordTok{return}\NormalTok{(thetahat)}
+\NormalTok{\}}
+\NormalTok{Emix <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(X, E, start, }\DataTypeTok{nreps=}\DecValTok{10}\NormalTok{)}
+\NormalTok{\{}
+\NormalTok{  i=}\DecValTok{0}
+\NormalTok{  Z=}\KeywordTok{delta}\NormalTok{(E,start)}
+\NormalTok{  newpars <-}\StringTok{ }\NormalTok{start}
+\NormalTok{  res <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\KeywordTok{t}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{(newpars)))}
+\NormalTok{  error <-}\StringTok{ }\DecValTok{1}
+  \ControlFlowTok{while}\NormalTok{(i }\OperatorTok{<}\StringTok{ }\NormalTok{nreps }\OperatorTok{&}\StringTok{ }\NormalTok{error }\OperatorTok{>}\StringTok{ }\FloatTok{1e-5}\NormalTok{) }\CommentTok{# should check for convergence}
+\NormalTok{  \{}
+\NormalTok{i <-}\StringTok{ }\NormalTok{i}\OperatorTok{+}\DecValTok{1}
+\DecValTok{1}
+\NormalTok{oldpars <-}\StringTok{ }\NormalTok{newpars}
+\NormalTok{    newpars <-}\StringTok{ }\KeywordTok{mles}\NormalTok{(Z,X,E)}
+\NormalTok{    error <-}\StringTok{ }\KeywordTok{abs}\NormalTok{(newpars}\OperatorTok{-}\NormalTok{oldpars)}
+\NormalTok{    Z <-}\StringTok{ }\KeywordTok{delta}\NormalTok{(E,newpars)}
+\NormalTok{    res <-}\StringTok{ }\KeywordTok{rbind}\NormalTok{(res,}\KeywordTok{c}\NormalTok{(i, }\KeywordTok{t}\NormalTok{(}\KeywordTok{as.matrix}\NormalTok{(newpars))))}
+\NormalTok{\}}
+  \KeywordTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+\CommentTok{# given data}
+\NormalTok{n=}\DecValTok{20}\NormalTok{;m=}\DecValTok{20}\NormalTok{;t=}\DecValTok{8}
+\NormalTok{X <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\FloatTok{4.0}\NormalTok{, }\FloatTok{12.8}\NormalTok{, }\FloatTok{2.9}\NormalTok{, }\FloatTok{27.2}\NormalTok{, }\FloatTok{2.9}\NormalTok{, }\FloatTok{3.1}\NormalTok{, }\FloatTok{11.2}\NormalTok{, }\FloatTok{9.0}\NormalTok{, }\FloatTok{8.1}\NormalTok{, }\FloatTok{9.8}\NormalTok{, }\FloatTok{13.7}\NormalTok{, }\FloatTok{8.3}\NormalTok{, }\FloatTok{1.2}\NormalTok{, }\FloatTok{0.9}\NormalTok{, }\FloatTok{8.0}\NormalTok{, }\FloatTok{18.8}\NormalTok{, }\FloatTok{2.6}\NormalTok{, }\FloatTok{22.6}\NormalTok{, }\FloatTok{1.7}\NormalTok{, }\FloatTok{4.0}\NormalTok{)}
+\NormalTok{E <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{)}
+\KeywordTok{Emix}\NormalTok{ (X, E, }\DataTypeTok{start=}\DecValTok{1}\NormalTok{, }\DataTypeTok{nreps=}\DecValTok{50}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     [,1]      [,2]
+## res    0  1.000000
+##        1  7.219463
+##        2  9.541028
+##        3 10.271799
+##        4 10.498730
+##        5 10.568989
+##        6 10.590723
+##        7 10.597445
+##        8 10.599523
+##        9 10.600166
+##       10 10.600365
+##       11 10.600426
+##       12 10.600445
+##       13 10.600451
+\end{verbatim}
+
+\hypertarget{example-4-the-fishers-genotype-example}{%
+\subsection{Example 4 The Fisher's genotype
+example}\label{example-4-the-fishers-genotype-example}}
+
+A two linked bi-allelic loci, A and B, with alleles A and a, and B and
+b, respectively. A is dominant over a and B is dominant over b. Since
+the two loci are linked, types AB and ab will appear with the same
+frequency \((1-r)/2\), and types Ab and aB will appear with the same
+frequency \(r/2\). So a genotype AABB will have the frequency
+\((1-r)(1-r)/4\) and a genotype AaBB will have the frequency
+\(r(1-r)/4\)\ldots{}
+
+Due to the dominate feature, there are 4 classes of phenotypes,
+A\emph{B}, A\emph{bb, aaB} and aabb. Let \(\psi = (1-r)(1-r)\), one can
+derive that the joint distribution of the 4 phenotypes
+\(\mathbf{y} = \{y_1,y_2,y_3,y_4\}\) from a random sample with \(n\)
+subject is multinomial
+\[\mbox{Multinomial} [ n, \frac{2+\psi}{4}, \frac{1-\psi}{4}, \frac{1-\psi}{4} ,\frac{\psi}{4} ]\]
+Question -- How to estimate \(\psi\)?
+
+\newslide
+\paragraph{MLE}
+
+\[L(\mathbf{y}, \psi) = \frac{n!}{y_1!y_2!y_3!y_4!} (1/2+\psi/4)^{y_1}(1/4 - \psi/4)^{(y_2+y_3)} (\psi/4)^{y_4}\]
+\[\log L(\mathbf{y}, \psi) = y_1\log(2+\psi) + (y_2+y_3) \log(1-\psi) + y_4 \log(\psi)\]
+\[\frac{\partial L(\mathbf{y}, \psi)}{\partial \psi} =\frac{y_1}{2+\psi}+\frac{y_2+y_3}{1-\psi} +\frac{4}{\psi} \]
+
+Suppose \(y_1 = y_{11} + y_{12}\), where \(y_{11} \sim B(n, 1/2)\) and
+\(y_{12} \sim B(n, \psi/4)\). Then the complete log likelihood of
+\(\{y_{11},y_{12},y_2,y_3,y_4\}\) is
+\[\log L_c(\psi) = (y_{12} + y_4) \log(\psi) + (y_2+y_3)\log(1-\psi) \]
+
+In the \(t\)-th \(E\) step, we need to estimate
+\(E[y_{12}| \mathbf{y},\psi^{(t)} ]\). Since
+\[y_{11} \sim B(y_1, \frac{0.5}{0.5+\psi^{(t)}/4})\]
+\[y_{12}^{(t)} = E[y_{12}| \mathbf{y},\psi^{(t)} ] = y_1 - \frac{0.5y_1}{0.5+\psi^{(t)}/4}\]
+
+In the \(M\) step, we need to maximize
+\((y_{12}^{(t)} + y_4) \log(\psi) + (y_2+y_3)\log(1-\psi)\), which is
+equivalent to solve the following simple linear function
+\[\frac{y_{12}^{(t)} + y_4}{\psi} - \frac{y_2+y_3}{1-\psi} = 0\]
+
+\[\psi^{(t)} =\frac{y_{12}^{(t)}+y_4}{y_{12}^{(t)} + y_2+y_3+y_4} = \frac{y_{12}^{(t)}+y_4}{n-y_{11}^{(t)}}\]
+
+\emph{Question}: When \(\mathbf{y} = (125, 18, 20, 34)\), what is
+\(\psi\)?
+
+\vskip 15pt
+
+\hypertarget{example-5-abo-blood-type}{%
+\subsection{Example 5 ABO blood type}\label{example-5-abo-blood-type}}
+
+Consider the ABO blood type data, where you have
+\(N_{obs} = (N_{A},N_{B},N_{AB}, N_{O}) = (26, 27, 42, 7)\).
+
+\begin{itemize}
+\tightlist
+\item
+  Design an EM algorithm to estimate the allele frequencies,
+  \(P_A, P_B\) and \(P_O\); and\}
+\end{itemize}
+
+The relationship between phenotype and genotype in ABO blood type data
+is determined by the following table.
+
+\begin{longtable}[]{@{}l@{}}
+\toprule
+\endhead
+Bloodtype A \textbar{} B \textbar{} AB \textbar{} O
+\textbackslash{}\tabularnewline
+Genotype A/A, A/O \textbar{} B/B, B/O \textbar{} A/B \textbar{} O/O
+\textbackslash{}\tabularnewline
+\bottomrule
+\end{longtable}
+
+While complete data for this case would be the number of people with
+each genotype, denoted by
+\(N=(N_{A/A}, N_{A/O}, N_{B/B}, N_{B/O}, N_{A/B}, N_{O/O})\), we only
+observed the number of people with each phenotype, say
+\(N_{\text{obs}} = (N_{A}, N_{B}, N_{AB}, N_{O})\).
+
+Note that the goal is to estimate the frequencies of alleles A, B, and
+O, denoted by \(p_A\), \(p_B\), and \(p_O\), respectively. According to
+the Hardy-Weinberg law, the genotype frequencies are
+
+\[\mbox{Prob} (\mbox{Genotype} = A/A) = p_A^2\]
+\[\mbox{Prob} (\mbox{Genotype} = A/O) = 2p_A p_O\]
+\[\mbox{Prob} (\mbox{Genotype} = B/B ) = p_B^2\]
+\[\mbox{Prob} (\mbox{Genotype} = B/O) = 2p_B p_O\]
+\[\mbox{Prob} (\mbox{Genotype} = A/B) = 2p_A p_B\]
+\[\mbox{Prob} (\mbox{Genotype} =  O/O ) = p_O^2\]
+
+Furthermore, genotype counts
+\(N=(N_{A/A}, N_{A/O}, N_{B/B}, N_{B/O}, N_{A/B}, N_{O/O})\) are jointly
+multinomially distributed with log-likelihood function as shown below.
+\begin{eqnarray*}
+\log L(p | N) &=& N_{A/A} \log(p_A^2) + N_{A/O} \log (2 p_A p_O) + N_{B/B} \log(p_B^2) +  N_{B/O} \log(2 p_B p_O) \\
+&+& N_{A/B} \log(2 p_A p_B) + N_{O/O} \log(p_O^2) \\
+&+& \log \Bigl(\frac{n!}{N_{A/A}! N_{A/O}! N_{B/B}! N_{B/O}! N_{A/B}! N_{O/O}!}\Bigr)
+\end{eqnarray*} where
+\(n=N_{A/A} + N_{A/O} + N_{B/B} + N_{B/O} + N_{A/B} + N_{O/O}\).
+
+** E-step **
+
+Note \(N_{A/A} + N_{A/O} = N_A\) and \(N_{B/B} + N_{B/O} = N_B\). Thus
+the conditional distribution of \(N_{A/A}|N_A\) and \(N_{B/B}|N_B\) are
+\[
+N_{A/A}|N_A \sim \text{Bin}\Biggl( N_A, \frac{p_A^2}{p_A^2 + 2 p_A p_O} \Biggr)
+\] and \[
+ \,\,\, N_{B/B}|N_B \sim \text{Bin}\Biggl( N_B, \frac{p_B^2}{p_B^2 + 2 p_B p_O} \Biggr)
+\] respectively.
+
+Therefore, the expectations in the \(k\)-th iteration can be easily
+calculated as follows. \[
+N_{A/A}^{(k)} = E(N_{A/A}|N_{\text{obs}}, p^{(k)}) = N_A \times \frac{{p_A^{(k)}}^2}{{p_A^{(k)}}^2 + 2 p_A^{(k)} p_O^{(k)}}
+\] \[
+N_{A/O}^{(k)} = E(N_{A/O}|N_{\text{obs}}, p^{(k)}) = N_A \times \frac{2 p_A^{(k)} p_O^{(k)}}{{p_A^{(k)}}^2 + 2 p_A^{(k)} p_O^{(k)}}
+\] \[
+N_{B/B}^{(k)} = E(N_{B/B}|N_{\text{obs}}, p^{(k)}) = N_B \times \frac{{p_B^{(k)}}^2}{{p_B^{(k)}}^2 + 2 p_B^{(k)} p_O^{(k)}}
+\] \[
+N_{B/O}^{(k)} = E(N_{B/O}|N_{\text{obs}}, p^{(k)}) = N_B \times \frac{2 p_B^{(k)} p_O^{(k)}}{{p_B^{(k)}}^2 + 2 p_B^{(k)} p_O^{(k)}}.
+\]
+
+Moreover, it is obvious that \[
+E(N_{A/B}|N_{\text{obs}}, p^{(k)}) = N_{A/B}
+\] and \[ 
+E(N_{O/O}|N_{\text{obs}}, p^{(k)}) = N_{O/O}.
+\]
+
+\textbf{M-step}
+
+Now consider maximizing \(Q(p|p^{(k)})\) under the restriction
+\(p_A+p_B+p_O=1\). Introduce Lagrange multiplier \(\lambda\) and
+maximize \[Q_L(p, \lambda|p^{(k)})=Q(p|p^{(k)})+\lambda(p_A+p_B+p_O-1)\]
+with respect to \(p=(p_A, p_B, p_O)\) and \(\lambda\).\textbackslash{}
+\begin{eqnarray}
+\frac{\partial Q_L(p, \lambda|p^{(k)})}{\partial p_A}
+&=&\frac{2N_{A/A}^{(k)}}{p_A}+\frac{N_{A/O}^{(k)}}{p_A}+\frac{N_{A/B}^{(k)}}{p_A}+\lambda\\
+\frac{\partial Q_L(p, \lambda|p^{(k)})}{\partial p_B}
+&=&\frac{2N_{B/B}^{(k)}}{p_B}+\frac{N_{B/O}^{(k)}}{p_B}+\frac{N_{A/B}^{(k)}}{p_B}+\lambda\\
+\frac{\partial Q_L(p, \lambda|p^{(k)})}{\partial p_O}
+&=&\frac{N_{A/O}^{(k)}}{p_O}+\frac{N_{B/O}^{(k)}}{p_O}+\frac{2N_{O/O}^{(k)}}{p_O}+\lambda\\
+\frac{\partial Q_L(p, \lambda|p^{(k)})}{\partial p_\lambda}&=&p_A+p_B+p_C-1
+\end{eqnarray}
+
+Since
+\(N_{A/A}^{(k)}+N_{A/O}^{(k)}+N_{B/B}^{(k)}+N_{B/O}^{(k)}+N_{A/B}^{(k)}+N_{O/O}^{(k)}=n\),
+from the above four functions, we get \(\lambda=-2n\). By plugging
+\(\lambda=-2n\) in and setting (1), (2), and (3) to be zero, update
+\((p_A, p_B, p_O)\) as follows.
+\[p_A^{(k+1)}=\frac{2N_{A/A}^{(k)}+N_{A/O}^{(k)}+N_{A/B}^{(k)}}{2n}\]
+\[p_B^{(k+1)}=\frac{2N_{B/B}^{(k)}+N_{B/O}^{(k)}+N_{A/B}^{(k)}}{2n}\]
+\[p_O^{(k+1)}=\frac{2N_{O/O}^{(k)}+N_{A/O}^{(k)}+N_{B/O}^{(k)}}{2n}\]
+
+Repeat E-step and M-step until convergence.
+
+```
+
+
+\end{document}
